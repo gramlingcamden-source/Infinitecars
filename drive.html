@@ -1,0 +1,63 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Infinite Cars â€” World Circuit</title>
+  <meta name="description" content="Drive cars from Infinite Cars on physics-based 3D world circuits." />
+  <link rel="stylesheet" href="drive.css" />
+</head>
+<body>
+  <div class="sim-loading" id="simLoading"><div><span>INFINITE CARS</span><b>Starting simulator</b><small>Loading 3D world and car physics...</small></div></div>
+  <canvas id="game"></canvas>
+  <header class="race-top">
+    <a href="index.html" class="back">â€¹ GARAGE</a>
+    <div class="race-title"><span>INFINITE CARS / WORLD CIRCUIT</span><b id="carTitle">SELECTED CAR</b></div>
+    <button class="camera-button" id="cameraButton">CAMERA: CHASE</button>
+    <button class="camera-button radio-toggle" id="radioButton">RADIO: OFF</button>
+    <button class="camera-button" id="cpuRaceButton">RACE CPU</button>
+    <button class="camera-button" id="randomCpuButton">RANDOM CPU</button>
+    <button class="camera-button" id="restartRaceButton">RESTART</button>
+    <label class="course-select">WORLD / MODE<select id="courseSelect"><option value="city">Street City Freeroam</option><option value="drag">Pro Drag Strip</option><option value="test">Test Track</option></select></label>
+    <label class="course-select">WEATHER<select id="weatherSelect"><option value="day">Day</option><option value="sunset">Sunset</option><option value="night">Night</option><option value="rain">Rain</option></select></label>
+  </header>
+  <aside class="cpu-picker" id="cpuPicker">
+    <div class="cpu-picker-head"><span>CPU DRAG OPPONENT</span><button id="cpuClose">×</button></div>
+    <div class="cpu-picked"><img id="cpuImage" alt=""><div><small>SELECTED CPU</small><b id="cpuPicked">Acura NSX Type S</b><em id="cpuImageStatus">Garage image preview</em></div></div>
+    <input id="cpuSearch" placeholder="Search cars..." />
+    <div class="cpu-columns"><div id="cpuBrands"></div><div id="cpuModels"></div></div>
+    <button class="cpu-start" id="cpuStart">START DRAG RACE</button>
+  </aside>
+  <div class="telemetry">
+    <div class="speed"><strong id="speed">0</strong><span>MPH</span></div>
+    <div><span id="lapLabel">MODE</span><b id="lap">FREE ROAM</b></div>
+    <div><span>TOP SPEED</span><b id="position">0 MPH</b></div>
+    <div><span>DRIVE TIME</span><b id="raceTime">00:00.000</b></div>
+  </div>
+  <canvas class="minimap" id="minimap" width="190" height="190"></canvas>
+  <div class="gauge-panel">
+    <div class="round-gauge"><span>SPEED</span><b id="gaugeSpeed">0</b><small>MPH</small><i id="speedNeedle"></i></div>
+    <div class="round-gauge"><span>TACH</span><b id="gaugeRpm">0</b><small>RPM</small><i id="rpmNeedle"></i></div>
+  </div>
+  <div class="compare-card" id="compareCard"><span>DRAG MATCHUP</span><div id="compareText">Pick a CPU to compare cars.</div></div>
+  <div class="physics-card"><span>LIVE PHYSICS</span><div id="physicsReadout"></div></div>
+  <div class="radio-card" id="radioCard"><span>RADIO</span><b id="radioAlbum">OFF</b><small id="radioTrack">Click RADIO to play built-in music</small></div>
+  <div class="controls"><b>W / â†‘</b> THROTTLE <b>S / â†“</b> BRAKE / REVERSE <b>A D / â† â†’</b> STEER <b>MOUSE DRAG</b> CAMERA ANGLE <b>WHEEL</b> ZOOM <b>C</b> CAMERA MODE <b>R</b> RESET</div>
+  <div class="countdown" id="countdown"><strong>3</strong><span>GET READY</span></div>
+  <div class="race-results" id="raceResults">
+    <div>
+      <button id="closeResults">×</button>
+      <span>DRAG RACE RESULTS</span>
+      <h2 id="resultWinner">WINNER</h2>
+      <p id="resultDetails"></p>
+      <button id="resultRestart">RACE AGAIN</button>
+    </div>
+  </div>
+  <div class="webgl-error" id="webglError"><b>3D ENGINE COULD NOT LOAD</b><span>The simulator could not start. Try reopening this page from the garage.</span><a href="index.html">RETURN TO GARAGE</a></div>
+  <audio id="radioPlayer"></audio>
+  <script src="archive-data.js"></script>
+  <script src="assets/vendor/three.global.js"></script>
+  <script src="drive.js"></script>
+</body>
+</html>
+

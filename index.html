@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Infinite Cars</title>
+  <meta name="description" content="Explore Infinite Cars, an interactive automotive encyclopedia featuring manufacturers, models, performance statistics, specifications, generations, and real vehicle photography." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://gramlingcamden-source.github.io/infinite-cars/" />
+  <meta property="og:title" content="Infinite Cars — Interactive Car Encyclopedia" />
+  <meta property="og:description" content="Explore car brands, models, performance averages, complex specifications, and real vehicle photography." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://gramlingcamden-source.github.io/infinite-cars/" />
+  <meta name="theme-color" content="#0c0e0f" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Infinite Cars","applicationCategory":"GameApplication","description":"An interactive automotive encyclopedia and car exploration game.","operatingSystem":"Web"}</script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="loading-screen" id="loadingScreen">
+    <div><span>INFINITE CARS</span><b>Loading garage</b><small>Building the car archive and simulator profile...</small></div>
+  </div>
+  <section class="welcome-screen" id="welcomeScreen">
+    <div class="welcome-card">
+      <span class="welcome-kicker">WEB GAME / CAR ENCYCLOPEDIA / 3D DRIVING</span>
+      <h1>Infinite Cars</h1>
+      <p>Pick a real car, study its stats, upgrade it with Inficoins, save favorites, and drive it in free roam, drag racing, or the F1-style test track.</p>
+      <div class="welcome-actions">
+        <button id="startGameButton">START GAME</button>
+        <a href="drive.html">OPEN SIMULATOR</a>
+      </div>
+      <div class="welcome-features">
+        <span>Real car archive</span>
+        <span>Car classes</span>
+        <span>Upgrades</span>
+        <span>Achievements</span>
+        <span>CPU drag races</span>
+        <span>3D driving</span>
+      </div>
+    </div>
+  </section>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand-mark" id="homeButton" href="index.html" aria-label="Infinite Cars home">
+        <span class="mark-icon">∞</span>
+        <span>INFINITE<br><b>CARS</b></span>
+      </a>
+
+      <label class="search-box">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"/></svg>
+        <input id="searchInput" type="search" placeholder="Search cars" autocomplete="off" />
+        <kbd>/</kbd>
+      </label>
+
+      <label class="class-filter">
+        <span>CAR CLASS</span>
+        <select id="classFilter">
+          <option value="">All classes</option>
+          <option value="Economy">Economy</option>
+          <option value="Sports">Sports</option>
+          <option value="Supercar">Supercar</option>
+          <option value="Hypercar">Hypercar</option>
+          <option value="EV">EV</option>
+          <option value="Classic">Classic</option>
+          <option value="Muscle">Muscle</option>
+          <option value="Off-road">Off-road</option>
+        </select>
+      </label>
+
+      <section class="sidebar-favorites">
+        <div class="directory-label"><span>FAVORITES</span><span id="favoriteCount">0</span></div>
+        <div id="sidebarFavorites" class="sidebar-favorite-list"></div>
+      </section>
+
+      <div class="directory-label"><span>MANUFACTURERS</span><span id="brandCount"></span></div>
+      <nav id="brandList" class="brand-list" aria-label="Car manufacturers"></nav>
+      <div class="sidebar-footer">
+        <span class="status-dot"></span>
+        <div><b>ARCHIVE ONLINE</b><small id="archiveProgress">Loading collection</small></div>
+      </div>
+    </aside>
+
+    <main class="main-stage">
+      <header class="topbar">
+        <div class="crumbs"><span>COLLECTION</span><i>/</i><strong id="crumbBrand">ASTON MARTIN</strong><i>/</i><b id="crumbModel">VALKYRIE</b></div>
+        <div class="top-actions">
+          <div class="coin-pill"><span>INFICOINS</span><b id="coinBalance">0</b></div>
+          <button class="icon-button" id="randomButton" title="Random car" aria-label="Pick a random car">↻</button>
+          <button class="favorite-button" id="favoriteButton" disabled>☆ FAVORITE</button>
+          <button class="drive-button" id="driveButton" disabled>DRIVE THIS CAR <span>▶</span></button>
+        </div>
+      </header>
+
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow"><span id="carYear">2024</span> · <span id="carType">HYPERCAR</span></p>
+          <h1 id="carName">Valkyrie</h1>
+          <div class="class-chip" id="carClass">CLASS: HYPERCAR</div>
+          <p id="carTagline" class="tagline">Formula One engineering, liberated for the road.</p>
+        </div>
+
+        <div class="car-visual" id="carVisual">
+          <div class="scanline"></div>
+          <img id="carImage" src="assets/hypercar-hero.png" alt="Selected car" />
+          <div class="image-loading" id="imageLoading">FINDING EXACT CAR PHOTO</div>
+          <div class="no-image-message"><span>NO IMAGE</span><small>No sourced photo is available for this model</small></div>
+          <a class="photo-source" id="photoSource" href="#" target="_blank" rel="noreferrer">PHOTO: WIKIMEDIA COMMONS ↗</a>
+          <div class="visual-badge"><span>HD</span><small>PHOTO VIEW</small></div>
+          <div class="edition-chip" id="editionChip">ROAD LEGAL</div>
+        </div>
+
+        <div class="stats-strip" id="statsStrip"></div>
+      </section>
+
+      <section class="lower-panel">
+        <div class="section-tabs">
+          <button class="section-tab active" data-panel="complex">COMPLEX STATS</button>
+          <button class="section-tab" data-panel="upgrades">UPGRADES</button>
+          <button class="section-tab" data-panel="achievements">ACHIEVEMENTS</button>
+          <button class="section-tab" data-panel="favorites">FAVORITES</button>
+          <button class="section-tab" data-panel="howto">HOW TO PLAY</button>
+          <button class="section-tab" data-panel="credits">CREDITS</button>
+          <button class="section-tab" data-panel="story">THE STORY</button>
+          <button class="section-tab" data-panel="gallery">GALLERY</button>
+        </div>
+
+        <div id="complex" class="tab-panel active">
+          <div class="spec-grid" id="specGrid"></div>
+          <div class="car-index">
+            <div class="index-header"><div><span id="selectedBrand">ASTON MARTIN</span><b>SELECT A MODEL</b></div><div class="index-meta"><small id="syncStatus">LOCAL ARCHIVE</small><small id="modelCount">3 MODELS</small></div></div>
+            <div id="modelList" class="model-list"></div>
+          </div>
+        </div>
+        <div id="upgrades" class="tab-panel upgrades-panel">
+          <div class="upgrade-head">
+            <span>PERFORMANCE SHOP</span>
+            <p>Win drag races or complete achievements to earn 100 Inficoins. Upgrades start at 200 and get more expensive as you level them up.</p>
+          </div>
+          <div id="upgradeList" class="upgrade-list"></div>
+        </div>
+        <div id="achievements" class="tab-panel achievements-panel">
+          <div class="achievement-head">
+            <span>ACHIEVEMENTS</span>
+            <p id="achievementSummary">Complete challenges in the simulator to earn 100 Inficoins each.</p>
+          </div>
+          <div id="achievementList" class="achievement-list"></div>
+        </div>
+        <div id="story" class="tab-panel story-panel"><span>DESIGN BRIEF</span><p id="storyText"></p></div>
+        <div id="favorites" class="tab-panel favorites-panel"><span>SAVED CARS</span><div id="favoritesList"></div></div>
+        <div id="howto" class="tab-panel info-panel">
+          <span>HOW TO PLAY</span>
+          <div class="info-grid">
+            <div><b>1. Pick a car</b><p>Choose a manufacturer, search a model, or use the class filter.</p></div>
+            <div><b>2. Study stats</b><p>Top speed, horsepower, acceleration, handling, braking, engine, fuel, and weight show in the garage.</p></div>
+            <div><b>3. Earn Inficoins</b><p>Win races and complete achievements. Each achievement pays 100 Inficoins.</p></div>
+            <div><b>4. Upgrade</b><p>Buy engine, turbo, tire, brake, and weight upgrades. Upgraded cars save to Favorites.</p></div>
+            <div><b>5. Drive</b><p>Use W/A/S/D or arrow keys, mouse drag for camera, C for camera mode, and R to reset.</p></div>
+            <div><b>6. Race CPU</b><p>Open the simulator, choose Drag Strip, pick a CPU car, and race a full mile.</p></div>
+          </div>
+        </div>
+        <div id="credits" class="tab-panel info-panel">
+          <span>CREDITS</span>
+          <div class="info-grid">
+            <div><b>Created by</b><p>Camden Gramling with Codex help.</p></div>
+            <div><b>Game type</b><p>Browser-based car encyclopedia and 3D driving simulator.</p></div>
+            <div><b>Photos</b><p>Custom images supplied by the creator, plus sourced public car photos when available.</p></div>
+            <div><b>Disclaimer</b><p>Stats are simplified for gameplay and may be estimated for archive cars.</p></div>
+          </div>
+        </div>
+        <div id="gallery" class="tab-panel gallery-panel"><div class="gallery-card"><img src="assets/hypercar-hero.png" alt="Hypercar studio view"><span>STUDIO / 01</span></div><div class="gallery-note">More angles unlock as the collection grows.</div></div>
+      </section>
+    </main>
+  </div>
+  <script src="archive-data.js"></script>
+  <script src="generation-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
