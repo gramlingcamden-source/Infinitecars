@@ -43,6 +43,20 @@
   <div class="physics-card"><span>LIVE PHYSICS</span><div id="physicsReadout"></div></div>
   <div class="radio-card" id="radioCard"><span>RADIO</span><b id="radioAlbum">OFF</b><small id="radioTrack">Click RADIO to play built-in music</small></div>
   <div class="controls"><b>W / â†‘</b> THROTTLE <b>S / â†“</b> BRAKE / REVERSE <b>A D / â† â†’</b> STEER <b>MOUSE DRAG</b> CAMERA ANGLE <b>WHEEL</b> ZOOM <b>C</b> CAMERA MODE <b>R</b> RESET</div>
+  <div class="touch-controls" id="touchControls" aria-label="Touch driving controls">
+    <div class="touch-steer">
+      <button data-touch-key="KeyA" aria-label="Steer left">LEFT</button>
+      <button data-touch-key="KeyD" aria-label="Steer right">RIGHT</button>
+    </div>
+    <div class="touch-actions">
+      <button data-touch-action="camera" aria-label="Change camera">CAM</button>
+      <button data-touch-action="reset" aria-label="Reset car">RESET</button>
+    </div>
+    <div class="touch-pedals">
+      <button data-touch-key="KeyW" class="gas" aria-label="Gas">GAS</button>
+      <button data-touch-key="KeyS" class="brake" aria-label="Brake or reverse">BRAKE</button>
+    </div>
+  </div>
   <div class="countdown" id="countdown"><strong>3</strong><span>GET READY</span></div>
   <div class="race-results" id="raceResults">
     <div>

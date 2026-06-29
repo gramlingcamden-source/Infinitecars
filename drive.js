@@ -168,6 +168,22 @@ const hemi=new THREE.HemisphereLight(0xf4fbff,0x8a836e,3.2);scene.add(hemi);cons
 let world=new THREE.Group(),curve,trackSamples=[],colliders=[],driveSurfaces=[],trafficCars=[],portal=null,roadWidth=13,player,course=courses.city,cpuCar=null,cpuBrand='Acura',cpuOpponent=fullCar('Acura',cpuCatalog.Acura[0]),cpuMotion={speed:0,distance:0,topSpeed:0};
 scene.add(world);
 const keys={},driveKeys=new Set(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','KeyC','KeyR']);addEventListener('keydown',e=>{if(driveKeys.has(e.code)){e.preventDefault();if(document.activeElement instanceof HTMLElement)document.activeElement.blur()}keys[e.code]=true;if(e.code==='KeyW'||e.code==='ArrowUp')startAudio();if(e.code==='KeyC'&&!e.repeat)cycleCamera();if(e.code==='KeyR')resetPlayer()},{passive:false});addEventListener('keyup',e=>{if(driveKeys.has(e.code))e.preventDefault();keys[e.code]=false},{passive:false});addEventListener('blur',()=>Object.keys(keys).forEach(k=>keys[k]=false));
+function setupTouchControls(){
+ const panel=document.querySelector('#touchControls');if(!panel)return;
+ const release=code=>{if(code)keys[code]=false};
+ for(const btn of panel.querySelectorAll('[data-touch-key]')){
+  const code=btn.dataset.touchKey;
+  const press=e=>{e.preventDefault();keys[code]=true;if(code==='KeyW')startAudio();btn.classList.add('pressed')};
+  const lift=e=>{e.preventDefault();release(code);btn.classList.remove('pressed')};
+  btn.addEventListener('pointerdown',press,{passive:false});
+  btn.addEventListener('pointerup',lift,{passive:false});
+  btn.addEventListener('pointercancel',lift,{passive:false});
+  btn.addEventListener('pointerleave',lift,{passive:false});
+ }
+ panel.querySelector('[data-touch-action="camera"]')?.addEventListener('pointerdown',e=>{e.preventDefault();cycleCamera()},{passive:false});
+ panel.querySelector('[data-touch-action="reset"]')?.addEventListener('pointerdown',e=>{e.preventDefault();resetPlayer()},{passive:false});
+}
+setupTouchControls();
 
 function inferBodyProfile(source=selected){
  const text=`${source.brand||''} ${source.name} ${source.type||''}`.toLowerCase();
