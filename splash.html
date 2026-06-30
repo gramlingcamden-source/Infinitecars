@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Infinite Cars | Splash</title>
+  <meta name="description" content="Infinite Cars splash page with links to the garage, simulator, and GitHub repository." />
+  <meta name="theme-color" content="#07090a" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700;800;900&family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --ink:#f5f2eb;
+      --muted:#aeb4b8;
+      --amber:#ffb02e;
+      --road:#08090a;
+      --panel:rgba(13,16,18,.78);
+      --line:rgba(255,255,255,.14);
+      --blue:#80d7ff;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:#060708;color:var(--ink);font-family:Inter,Arial,sans-serif}
+    body{
+      min-height:100vh;
+      overflow-x:hidden;
+      background:
+        radial-gradient(circle at 74% 12%,rgba(255,176,46,.2),transparent 30%),
+        radial-gradient(circle at 20% 70%,rgba(128,215,255,.12),transparent 34%),
+        linear-gradient(135deg,#040506 0%,#111518 42%,#070809 100%);
+    }
+    .splash{
+      position:relative;
+      min-height:100vh;
+      display:grid;
+      grid-template-rows:1fr auto;
+      overflow:hidden;
+      isolation:isolate;
+    }
+    .splash:before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        linear-gradient(90deg,rgba(5,6,7,.94) 0%,rgba(5,6,7,.58) 34%,rgba(5,6,7,.16) 68%,rgba(5,6,7,.82) 100%),
+        repeating-linear-gradient(0deg,transparent 0 5px,rgba(255,255,255,.018) 6px);
+      pointer-events:none;
+      z-index:-1;
+    }
+    .speed-lines{
+      position:absolute;
+      inset:auto -10% 11% -10%;
+      height:32vh;
+      background:
+        linear-gradient(90deg,transparent,rgba(255,176,46,.9),transparent) 0 38%/44% 2px repeat-x,
+        linear-gradient(90deg,transparent,rgba(128,215,255,.5),transparent) 15% 55%/38% 1px repeat-x,
+        linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent) 4% 70%/52% 1px repeat-x;
+      filter:blur(.15px);
+      transform:skewY(-4deg);
+      opacity:.7;
+      z-index:-1;
+    }
+    .hero-car{
+      position:absolute;
+      right:-8vw;
+      bottom:9vh;
+      width:min(73vw,1050px);
+      max-height:72vh;
+      object-fit:contain;
+      filter:drop-shadow(0 38px 65px rgba(0,0,0,.85)) saturate(.98) contrast(1.08);
+      opacity:.92;
+      z-index:-1;
+    }
+    .topline{
+      position:absolute;
+      top:24px;
+      left:28px;
+      right:28px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      z-index:2;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      text-decoration:none;
+      color:white;
+      font-family:"Barlow Condensed",Impact,sans-serif;
+      line-height:.85;
+      letter-spacing:2.6px;
+      font-weight:800;
+    }
+    .brand i{
+      width:44px;
+      height:44px;
+      border:1px solid rgba(255,255,255,.72);
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      font-style:normal;
+      font:300 31px Arial;
+    }
+    .brand b{display:block;color:var(--amber);font-size:23px}
+    .repo-pill{
+      border:1px solid rgba(255,176,46,.42);
+      color:var(--amber);
+      text-decoration:none;
+      background:rgba(8,10,11,.66);
+      padding:11px 14px;
+      font-size:9px;
+      font-weight:900;
+      letter-spacing:1.4px;
+      text-transform:uppercase;
+      box-shadow:0 18px 55px rgba(0,0,0,.35);
+    }
+    .content{
+      width:min(1160px,calc(100vw - 40px));
+      margin:auto;
+      padding:110px 0 160px;
+      display:grid;
+      grid-template-columns:minmax(320px,620px) 1fr;
+      gap:40px;
+      align-items:center;
+    }
+    .kicker{
+      display:inline-flex;
+      gap:10px;
+      align-items:center;
+      border:1px solid rgba(255,176,46,.34);
+      background:rgba(255,176,46,.08);
+      color:var(--amber);
+      padding:9px 11px;
+      font-size:9px;
+      font-weight:900;
+      letter-spacing:1.7px;
+      text-transform:uppercase;
+    }
+    .kicker:before{
+      content:"";
+      width:7px;
+      height:7px;
+      border-radius:50%;
+      background:#71ffa8;
+      box-shadow:0 0 18px #71ffa8;
+    }
+    h1{
+      margin:22px 0 14px;
+      font:900 clamp(78px,13vw,176px)/.74 "Barlow Condensed",Impact,sans-serif;
+      text-transform:uppercase;
+      letter-spacing:-5px;
+      text-shadow:0 8px 34px rgba(0,0,0,.9);
+    }
+    .subtitle{
+      max-width:540px;
+      color:#c3c8cb;
+      font-size:15px;
+      line-height:1.75;
+      margin:0;
+    }
+    .actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      margin-top:30px;
+    }
+    .actions a{
+      min-width:150px;
+      height:46px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid var(--amber);
+      background:var(--amber);
+      color:#101112;
+      text-decoration:none;
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:1.4px;
+      text-transform:uppercase;
+      box-shadow:0 22px 50px rgba(255,176,46,.15);
+    }
+    .actions a.secondary{
+      background:rgba(12,14,15,.72);
+      color:var(--amber);
+    }
+    .stat-row{
+      margin-top:32px;
+      display:grid;
+      grid-template-columns:repeat(3,minmax(120px,1fr));
+      gap:10px;
+      max-width:560px;
+    }
+    .mini-stat{
+      border:1px solid var(--line);
+      background:linear-gradient(145deg,rgba(19,22,24,.8),rgba(8,10,11,.76));
+      padding:14px;
+      min-height:86px;
+      box-shadow:0 22px 60px rgba(0,0,0,.32);
+    }
+    .mini-stat span{
+      display:block;
+      color:#7d858a;
+      font-size:8px;
+      font-weight:900;
+      letter-spacing:1.5px;
+      text-transform:uppercase;
+    }
+    .mini-stat b{
+      display:block;
+      margin-top:9px;
+      font:800 31px/1 "Barlow Condensed",Impact,sans-serif;
+      color:white;
+    }
+    .mini-stat small{display:block;margin-top:3px;color:#697075;font-size:9px}
+    .showcase-card{
+      justify-self:end;
+      width:min(360px,100%);
+      border:1px solid rgba(255,255,255,.13);
+      background:linear-gradient(145deg,rgba(18,21,23,.82),rgba(7,9,10,.78));
+      box-shadow:0 30px 90px rgba(0,0,0,.55);
+      padding:18px;
+      backdrop-filter:blur(12px);
+    }
+    .showcase-card span{
+      display:block;
+      color:var(--amber);
+      font-size:8px;
+      font-weight:900;
+      letter-spacing:1.7px;
+      text-transform:uppercase;
+      margin-bottom:12px;
+    }
+    .showcase-card img{
+      display:block;
+      width:100%;
+      aspect-ratio:16/10;
+      object-fit:cover;
+      border:1px solid rgba(255,255,255,.1);
+      filter:saturate(.95) contrast(1.04);
+    }
+    .showcase-card p{
+      color:#aeb4b8;
+      font-size:11px;
+      line-height:1.6;
+      margin:13px 0 0;
+    }
+    .qr-footer{
+      position:relative;
+      z-index:3;
+      width:min(1120px,calc(100vw - 34px));
+      margin:0 auto 22px;
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:18px;
+      align-items:end;
+      border:1px solid rgba(255,255,255,.12);
+      background:linear-gradient(90deg,rgba(13,16,18,.86),rgba(8,10,11,.7));
+      box-shadow:0 28px 80px rgba(0,0,0,.5);
+      padding:16px;
+      backdrop-filter:blur(14px);
+    }
+    .qr-copy span{
+      color:var(--amber);
+      display:block;
+      font-size:8px;
+      font-weight:900;
+      letter-spacing:1.8px;
+      text-transform:uppercase;
+      margin-bottom:7px;
+    }
+    .qr-copy b{
+      display:block;
+      font:800 34px/1 "Barlow Condensed",Impact,sans-serif;
+      text-transform:uppercase;
+      letter-spacing:.5px;
+    }
+    .qr-copy a{
+      display:inline-block;
+      margin-top:8px;
+      color:#9ccfed;
+      text-decoration:none;
+      font-size:11px;
+      word-break:break-all;
+    }
+    .qr-code{
+      width:154px;
+      border:1px solid rgba(255,176,46,.35);
+      background:#fff;
+      padding:10px;
+      display:block;
+      box-shadow:0 18px 50px rgba(0,0,0,.42);
+    }
+    .qr-code img{
+      display:block;
+      width:100%;
+      height:auto;
+    }
+    @media(max-width:880px){
+      .topline{position:relative;top:auto;left:auto;right:auto;padding:18px}
+      .repo-pill{display:none}
+      .content{grid-template-columns:1fr;padding:48px 0 130px}
+      .showcase-card{justify-self:start}
+      .hero-car{right:-40vw;width:125vw;opacity:.43;bottom:21vh}
+      .stat-row{grid-template-columns:1fr}
+      .qr-footer{grid-template-columns:1fr;justify-items:start}
+      .qr-code{width:142px}
+      h1{letter-spacing:-3px}
+    }
+  </style>
+</head>
+<body>
+  <main class="splash">
+    <div class="speed-lines" aria-hidden="true"></div>
+    <img class="hero-car" src="assets/lucid-air-sapphire.png" alt="Lucid Air Sapphire hero car" />
+
+    <div class="topline">
+      <a class="brand" href="index.html" aria-label="Open Infinite Cars garage">
+        <i>∞</i>
+        <span>INFINITE<b>CARS</b></span>
+      </a>
+      <a class="repo-pill" href="https://github.com/gramlingcamden-source/Infinitecars" target="_blank" rel="noreferrer">GitHub Repo</a>
+    </div>
+
+    <section class="content">
+      <div>
+        <span class="kicker">Public build / web garage / 3D simulator</span>
+        <h1>Drive the archive.</h1>
+        <p class="subtitle">A full-throttle car encyclopedia and driving game: choose a real model, compare stats, upgrade favorites, race the CPU, and test every car across the garage.</p>
+        <div class="actions">
+          <a href="index.html">Enter Garage</a>
+          <a class="secondary" href="drive.html">Launch Simulator</a>
+          <a class="secondary" href="https://github.com/gramlingcamden-source/Infinitecars" target="_blank" rel="noreferrer">View Code</a>
+        </div>
+        <div class="stat-row" aria-label="Game feature highlights">
+          <div class="mini-stat"><span>Archive</span><b>500+</b><small>models and growing</small></div>
+          <div class="mini-stat"><span>Modes</span><b>3</b><small>city, drag, test track</small></div>
+          <div class="mini-stat"><span>Build</span><b>Web</b><small>plays in browser</small></div>
+        </div>
+      </div>
+
+      <aside class="showcase-card">
+        <span>Featured machine</span>
+        <img src="assets/acura-nsx.png" alt="Acura NSX preview" />
+        <p>Real car photos, aggressive UI, favorites, Inficoins, upgrades, achievements, and race-ready simulator modes.</p>
+      </aside>
+    </section>
+
+    <footer class="qr-footer">
+      <div class="qr-copy">
+        <span>Scan to open the repo</span>
+        <b>Infinite Cars on GitHub</b>
+        <a href="https://github.com/gramlingcamden-source/Infinitecars" target="_blank" rel="noreferrer">https://github.com/gramlingcamden-source/Infinitecars</a>
+      </div>
+      <a class="qr-code" href="https://github.com/gramlingcamden-source/Infinitecars" target="_blank" rel="noreferrer" aria-label="QR code linking to the Infinite Cars GitHub repository">
+        <img alt="QR code for Infinite Cars GitHub repository" src="https://api.qrserver.com/v1/create-qr-code/?size=320x320&amp;margin=16&amp;data=https%3A%2F%2Fgithub.com%2Fgramlingcamden-source%2FInfinitecars" />
+      </a>
+    </footer>
+  </main>
+</body>
+</html>
