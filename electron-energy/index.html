@@ -135,7 +135,37 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: #101617bb;
 }
 .level-picker { width: min(100%, 1040px); }
-.level-picker h1 { margin: 0 0 22px; font-size: 44px; line-height: 1.05; }
+.level-picker-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 22px; }
+.level-picker h1 { margin: 0; font-size: 44px; line-height: 1.05; }
+.prologue {
+  width: min(760px, calc(100% - 24px));
+  max-height: calc(100dvh - 24px);
+  padding: 0;
+  border: 1px solid #55625f;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+.prologue::backdrop { background: #0a0e11e8; }
+.prologue-art { display: block; width: 100%; height: auto; aspect-ratio: 32 / 15; background: #172335; }
+.prologue-content { padding: 14px 20px 16px; }
+.prologue-progress {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 4px;
+  margin-bottom: 14px;
+  border: 0;
+  background: #364247;
+}
+.prologue-progress::-webkit-progress-bar { background: #364247; }
+.prologue-progress::-webkit-progress-value { background: var(--mint); }
+.prologue-progress::-moz-progress-bar { background: var(--mint); }
+.prologue-copy { min-height: 100px; }
+.prologue-title { margin: 0 0 6px; font-size: 24px; line-height: 1.12; }
+.prologue-caption { margin: 0; max-width: 56ch; color: var(--muted); font-size: 16px; line-height: 1.45; }
+.prologue-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.prologue-next { border-color: var(--mint); color: var(--mint); }
 .difficulty-sections { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 .difficulty-section {
   --level-accent: #9ef2ce;
@@ -278,7 +308,8 @@ kbd { color: var(--mint); font: 750 11px ui-monospace, monospace; }
 @media (max-width: 660px) {
   .level-home { padding: 24px 14px; }
   .level-picker { max-width: 460px; }
-  .level-picker h1 { margin-bottom: 16px; font-size: 34px; }
+  .level-picker-header { margin-bottom: 16px; }
+  .level-picker h1 { font-size: 34px; }
   .difficulty-sections { grid-template-columns: minmax(0, 1fr); gap: 14px; }
   .difficulty-section h2 { margin-bottom: 6px; padding-bottom: 4px; }
   .level-grid { gap: 8px; }
@@ -309,6 +340,16 @@ kbd { color: var(--mint); font: 750 11px ui-monospace, monospace; }
 
 @media (max-width: 400px) {
   .skin-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .prologue-content { padding: 12px; }
+  .prologue-title { font-size: 21px; }
+  .prologue-copy { min-height: 118px; }
+}
+
+@media (max-height: 480px) and (min-width: 480px) {
+  .prologue-art { height: 43dvh; object-fit: contain; }
+  .prologue-content { padding: 10px 16px; }
+  .prologue-progress { margin-bottom: 9px; }
+  .prologue-copy { min-height: 64px; }
 }
 
 @media (pointer: coarse) {
@@ -349,7 +390,10 @@ kbd { color: var(--mint); font: 750 11px ui-monospace, monospace; }
 
       <section id="levelHome" class="level-home" aria-labelledby="homeTitle">
         <div class="level-picker">
-          <h1 id="homeTitle">Choose a level</h1>
+          <div class="level-picker-header">
+            <h1 id="homeTitle">Choose a level</h1>
+            <button id="replayPrologue" class="secondary" type="button" aria-haspopup="dialog">Watch prologue</button>
+          </div>
           <div class="difficulty-sections">
             <section class="difficulty-section" data-difficulty="Practice" aria-labelledby="practiceHeading">
               <h2 id="practiceHeading">Practice</h2>
@@ -420,6 +464,20 @@ kbd { color: var(--mint); font: 750 11px ui-monospace, monospace; }
       </div>
     </footer>
   </main>
+  <dialog id="prologue" class="prologue" aria-label="Electron Energy prologue">
+    <canvas class="prologue-art" width="640" height="300" aria-hidden="true"></canvas>
+    <div class="prologue-content">
+      <progress class="prologue-progress" max="3" value="0" aria-hidden="true"></progress>
+      <div class="prologue-copy" aria-live="polite" aria-atomic="true">
+        <h2 class="prologue-title"></h2>
+        <p class="prologue-caption"></p>
+      </div>
+      <div class="prologue-actions">
+        <button type="button" class="secondary prologue-skip">Skip prologue</button>
+        <button type="button" class="secondary prologue-next" hidden>Next scene</button>
+      </div>
+    </div>
+  </dialog>
   <dialog id="upgradeShop" class="shop-dialog" aria-labelledby="shopHeading">
     <header class="shop-header">
       <div>
@@ -458,6 +516,7 @@ kbd { color: var(--mint); font: 750 11px ui-monospace, monospace; }
       document.querySelector("#loadError").hidden = false;
       document.querySelectorAll("[data-level]").forEach((button) => { button.disabled = true; });
       document.querySelector("#shopButton").disabled = true;
+      document.querySelector("#replayPrologue").disabled = true;
     }, { once: true });
   </script>
   <script>
@@ -638,6 +697,267 @@ function drawSkinSprite(context, id, stride = 0, armored = false) {
 }
 "use strict";
 
+function createPrologue(dialog) {
+  const art = dialog.querySelector("canvas").getContext("2d");
+  const bar = dialog.querySelector(".prologue-progress");
+  const title = dialog.querySelector(".prologue-title");
+  const caption = dialog.querySelector(".prologue-caption");
+  const skip = dialog.querySelector(".prologue-skip");
+  const next = dialog.querySelector(".prologue-next");
+  const scenes = [
+    {
+      title: "The blackout",
+      caption: "Overload Tower cut power to the city. Only its relay bots stayed online.",
+      duration: 4100,
+      draw: paintBlackout
+    },
+    {
+      title: "The surge",
+      caption: "A broken relay surged as you passed. You woke up able to steer electrons.",
+      duration: 4600,
+      draw: paintSurge
+    },
+    {
+      title: "The way back",
+      caption: "Train your powers, fight through the relays, and bring Overload Tower back online.",
+      duration: 4500,
+      draw: paintClimb
+    }
+  ];
+  let complete = null;
+  let frame = null;
+  let startedAt = null;
+  let sceneIndex = 0;
+  let still = false;
+  let skin = "pilot";
+  let finishLabel = "";
+
+  function finish() {
+    if (!complete) return;
+    const callback = complete;
+    complete = null;
+    if (frame !== null) cancelAnimationFrame(frame);
+    frame = null;
+    dialog.close();
+    callback();
+  }
+
+  function showScene(index) {
+    sceneIndex = index;
+    startedAt = null;
+    const scene = scenes[index];
+    title.textContent = scene.title;
+    caption.textContent = scene.caption;
+    next.textContent = index === scenes.length - 1 ? finishLabel : "Next scene";
+    bar.value = index + (still ? 1 : 0);
+    scene.draw(art, still ? 0.68 : 0, skin);
+    if (!still) frame = requestAnimationFrame(animate);
+  }
+
+  function advance() {
+    if (!complete) return;
+    if (sceneIndex === scenes.length - 1) finish();
+    else showScene(sceneIndex + 1);
+  }
+
+  function animate(now) {
+    frame = null;
+    if (!complete) return;
+    if (startedAt === null) startedAt = now;
+    const scene = scenes[sceneIndex];
+    const fraction = Math.min(1, (now - startedAt) / scene.duration);
+    scene.draw(art, fraction, skin);
+    bar.value = sceneIndex + fraction;
+    if (fraction === 1) advance();
+    else frame = requestAnimationFrame(animate);
+  }
+
+  skip.addEventListener("click", finish);
+  next.addEventListener("click", advance);
+  dialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    finish();
+  });
+
+  return function playPrologue(options, callback) {
+    if (!art || typeof dialog.showModal !== "function") {
+      callback();
+      return;
+    }
+    if (complete) return;
+    complete = callback;
+    still = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+    skin = options.skin;
+    finishLabel = options.finishLabel;
+    next.hidden = !still;
+    showScene(0);
+    dialog.showModal();
+    (still ? next : skip).focus({ preventScroll: true });
+  };
+}
+
+function storyRect(art, color, x, y, width, height) {
+  art.fillStyle = color;
+  art.fillRect(x, y, width, height);
+}
+
+function storyShape(art, color, points) {
+  art.fillStyle = color;
+  art.beginPath();
+  art.moveTo(...points[0]);
+  for (const point of points.slice(1)) art.lineTo(...point);
+  art.closePath();
+  art.fill();
+}
+
+function storyLine(art, color, width, points) {
+  art.strokeStyle = color;
+  art.lineWidth = width;
+  art.beginPath();
+  art.moveTo(...points[0]);
+  for (const point of points.slice(1)) art.lineTo(...point);
+  art.stroke();
+}
+
+function storySky(art, top, bottom, ridge) {
+  const gradient = art.createLinearGradient(0, 0, 0, 280);
+  gradient.addColorStop(0, top);
+  gradient.addColorStop(1, bottom);
+  storyRect(art, gradient, 0, 0, 640, 300);
+  storyShape(art, ridge, [[0, 190], [64, 132], [116, 172], [179, 118], [256, 168], [323, 129],
+    [406, 176], [487, 125], [555, 161], [640, 117], [640, 300], [0, 300]]);
+}
+
+function storyCity(art, lit) {
+  const heights = [66, 98, 74, 114, 52, 93, 116, 66, 103, 57, 78, 97, 61, 110];
+  heights.forEach((height, index) => {
+    const x = index * 48 - 10;
+    const y = 238 - height;
+    storyRect(art, "#222e3c", x, y, 41, height);
+    storyRect(art, "#33424b", x + 3, y, 37, 4);
+    for (let row = 1; row < height / 14 - 0.5; row++) {
+      for (let column = 0; column < 3; column++) {
+        const glowing = index / heights.length < lit && (index + row * 3 + column * 2) % 5 < 3;
+        storyRect(art, glowing ? "#f8c68a" : "#39464a", x + 8 + 10 * column, y + row * 14, 5, 4);
+      }
+    }
+  });
+}
+
+function storyTower(art, x, ground, scale, powered) {
+  art.save();
+  art.translate(x, ground);
+  art.scale(scale, scale);
+  storyShape(art, "#202934", [[-65, 0], [-47, -49], [-36, -143], [-24, -154], [-24, -177],
+    [24, -177], [24, -154], [36, -143], [47, -49], [65, 0]]);
+  storyShape(art, "#435362", [[-38, -54], [-25, -142], [25, -142], [38, -54], [28, -54],
+    [17, -133], [-17, -133], [-27, -54]]);
+  storyRect(art, "#354754", -58, -42, 116, 8);
+  storyRect(art, "#354754", -36, -147, 72, 9);
+  storyRect(art, "#698084", -4, -194, 8, 31);
+  storyRect(art, "#1d2631", -23, -177, 46, 22);
+  storyRect(art, powered ? "#9af2c9" : "#ed916e", -17, -170, 34, 8);
+  storyRect(art, powered ? "#75b6a3" : "#ac6157", -7, -131, 14, 67);
+  storyRect(art, "#586e75", -25, -32, 50, 32);
+  storyRect(art, "#172431", -20, -28, 40, 28);
+  art.restore();
+}
+
+function storyDeck(art, x, y, width, depth, trim) {
+  storyRect(art, "#202d37", x, y, width, depth);
+  storyRect(art, trim, x, y, width, 4);
+  storyRect(art, "#41545a", x, y + 10, width, 3);
+  for (let offset = 8; offset < width - 14; offset += 29) {
+    storyRect(art, "#465b60", x + offset, y + 19, 13, 3);
+  }
+}
+
+function storyBot(art, x, y, step, scale) {
+  art.save();
+  art.translate(x, y);
+  art.scale(scale, scale);
+  storyRect(art, "#242938", -12, -22, 24, 16);
+  storyRect(art, "#915b57", -10, -21, 19, 10);
+  storyRect(art, "#ffd593", -5, -19, 10, 3);
+  storyRect(art, "#354450", -15, -13, 7, 7);
+  storyRect(art, "#354450", 8, -13, 7, 7);
+  storyRect(art, "#202734", -10, -7, 7, 7 + step);
+  storyRect(art, "#202734", 3, -7, 7, 7 - step);
+  art.restore();
+}
+
+function storyHero(art, x, feet, scale, stride, skin) {
+  art.save();
+  art.translate(x, feet - 24 * scale);
+  art.scale(scale, scale);
+  drawSkinSprite(art, skin, stride);
+  art.restore();
+}
+
+function paintBlackout(art, fraction) {
+  storySky(art, "#19263a", "#7e655d", "#485265");
+  storyCity(art, Math.max(0.04, 1 - Math.max(0, fraction - 0.24) * 2.8));
+  storyTower(art, 459, 242, 1.05, fraction < 0.32);
+  if (fraction < 0.32) {
+    storyLine(art, "#86bea7", 2, [[132, 160], [237, 130], [340, 124], [444, 61]]);
+    storyLine(art, "#86bea7", 2, [[476, 61], [520, 98], [600, 131], [640, 142]]);
+  }
+  storyDeck(art, 0, 259, 640, 41, "#657c77");
+  for (let i = 0; i < 4; i++) {
+    const x = 684 - 205 * fraction + 52 * i;
+    storyBot(art, x, 259, Math.sin(fraction * 30 + i) * 2, 1.1);
+  }
+  if (fraction > 0.32) storyRect(art, "#141c2925", 0, 0, 640, 259);
+}
+
+function paintSurge(art, fraction, skin) {
+  storySky(art, "#202c3c", "#6e8c84", "#415962");
+  storyCity(art, 0.07);
+  storyDeck(art, 0, 247, 640, 53, "#718e82");
+  const walk = Math.min(1, fraction / 0.49);
+  const heroX = 119 + 135 * walk;
+  const charged = fraction >= 0.42;
+  const brokenRelay = [[358, 80], [376, 111], [366, 145], [391, 171]];
+  storyLine(art, "#1a2c37", 7, [[0, 63], [95, 71], [191, 56], [280, 73], [358, 80]]);
+  storyLine(art, "#293a45", 5, brokenRelay);
+  storyLine(art, "#1b2a33", 6, [[420, 91], [492, 80], [567, 87], [640, 76]]);
+  storyRect(art, "#172631", 367, 163, 67, 84);
+  storyRect(art, "#566d70", 374, 176, 53, 56);
+  storyRect(art, "#263b43", 377, 181, 46, 38);
+  storyRect(art, charged ? "#8bf2c5" : "#d9a875", 384, 187, 32, 5);
+  storyRect(art, "#92a083", 382, 230, 37, 4);
+  const stride = fraction < 0.49 ? Math.sin(fraction * 38) * 4 : 0;
+  storyHero(art, heroX, 247, 2, stride, skin);
+  if (charged) {
+    const drift = Math.sin(fraction * 23) * 6;
+    storyLine(art, "#85e4bd", 3, [[385, 188], [353, 158 + drift], [329, 178],
+      [299, 166 - drift], [heroX + 20, 182]]);
+    storyLine(art, "#e7f8cf", 1.5, [[326, 177], [308, 193], [289, 188], [heroX + 13, 202]]);
+    storyLine(art, "#9deada", 2, [[heroX - 31, 199], [heroX - 41, 183 + drift],
+      [heroX - 29, 169], [heroX - 12, 151 + drift]]);
+  }
+}
+
+function paintClimb(art, fraction, skin) {
+  storySky(art, "#222b40", "#ad756b", "#55556a");
+  storyCity(art, 0.07);
+  storyTower(art, 535, 245, 1.13, false);
+  storyDeck(art, 0, 257, 224, 43, "#7ba58a");
+  storyDeck(art, 228, 242, 125, 57, "#729283");
+  storyDeck(art, 361, 225, 114, 75, "#77998c");
+  storyDeck(art, 484, 246, 156, 54, "#8f8870");
+  const heroX = 74 + fraction * 162;
+  const jump = Math.max(0, (fraction - 0.67) / 0.33);
+  const feet = jump > 0 ? 257 - Math.sin(jump * Math.PI * 0.73) * 45 : 257;
+  storyHero(art, heroX, feet, 1.65, jump > 0 ? 1 : Math.sin(fraction * 43) * 4, skin);
+  const drift = Math.sin(fraction * 14) * 6;
+  storyLine(art, "#a7eece", 2, [[heroX - 31, feet - 19], [heroX - 43, feet - 16 - drift],
+    [heroX - 53, feet - 22], [heroX - 59, feet - 18 - drift]]);
+  storyBot(art, 391 + fraction * 36, 225, Math.sin(fraction * 28) * 2, 1);
+  storyBot(art, 515 - fraction * 7, 246, Math.sin(fraction * 25) * 2, 1);
+}
+"use strict";
+
 const { Engine, Bodies, Body, Composite } = Matter;
 const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
@@ -647,9 +967,10 @@ const ui = Object.fromEntries([
   "resultDescription", "resultAction", "restartButton", "musicButton", "powerGrid",
   "shopButton", "upgradeShop", "closeShopButton", "creditBalance", "shopBalance",
   "upgradeList", "upgradeTemplate", "shopFeedback", "shopUpgradesTab", "shopSkinsTab",
-  "skinList", "skinTemplate"
+  "skinList", "skinTemplate", "prologue", "replayPrologue"
 ].map((id) => [id, document.getElementById(id)]));
 const levelButtons = [];
+const playPrologue = createPrologue(ui.prologue);
 
 const floorY = 490;
 const startX = 120;
@@ -819,7 +1140,8 @@ function loadProgress() {
       return [id, Number.isInteger(level) ? Math.max(0, Math.min(upgradeLimit, level)) : 0];
     })),
     ownedSkins,
-    skin: ownedSkins.includes(saved?.skin) ? saved.skin : "pilot"
+    skin: ownedSkins.includes(saved?.skin) ? saved.skin : "pilot",
+    prologueSeen: saved?.prologueSeen === true
   };
 }
 
@@ -855,6 +1177,23 @@ function upgradeValue(id, level = progress.upgrades[id]) {
 
 function finishX() {
   return stage().width - 145;
+}
+
+function openPrologue(level = null) {
+  if (level !== null) startMusic();
+  playPrologue({ skin: progress.skin, finishLabel: level === null ? "Back to levels" : "Play level" }, () => {
+    if (!progress.prologueSeen) {
+      progress.prologueSeen = true;
+      saveProgress();
+    }
+    if (level === null) ui.replayPrologue.focus({ preventScroll: true });
+    else launchStage(level);
+  });
+}
+
+function chooseLevel(index) {
+  if (progress.prologueSeen) launchStage(index);
+  else openPrologue(index);
 }
 
 function actor(x, y, width, height) {
@@ -1586,13 +1925,14 @@ function renderLevelMenu() {
     const count = layout.bots.length;
     button.querySelector(".bot-total").textContent = count + (count === 1 ? " bot" : " bots");
     drawLevelPreview(button, layout);
-    button.addEventListener("click", () => launchStage(index));
+    button.addEventListener("click", () => chooseLevel(index));
     grids[layout.difficulty].append(button);
     levelButtons.push(button);
   });
 }
 
 ui.homeButton.addEventListener("click", showHome);
+ui.replayPrologue.addEventListener("click", () => openPrologue());
 ui.restartButton.addEventListener("click", () => launchStage(stageIndex));
 ui.shopButton.addEventListener("click", () => {
   if (ui.upgradeShop.open) return;
