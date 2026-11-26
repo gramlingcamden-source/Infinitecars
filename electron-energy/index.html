@@ -169,13 +169,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .prologue-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 10px; }
 .prologue-mute, .prologue-pause { min-width: 44px; padding-inline: 6px; }
 .prologue-mute[aria-pressed="false"] { color: var(--muted); border-style: dashed; }
-.campaign-acts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.campaign-acts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
 .campaign-act {
   --level-accent: #9ef2ce;
   min-width: 0;
 }
 .campaign-act:nth-child(2) { --level-accent: #b7d3ff; }
 .campaign-act:nth-child(3) { --level-accent: #ffbd9f; }
+.campaign-act:nth-child(4) { --level-accent: #ffe29c; }
 .campaign-act h2 {
   margin: 0 0 10px;
   padding: 0 0 7px;
@@ -261,6 +262,8 @@ meter::-webkit-meter-optimum-value { background: var(--mint); }
 }
 .boss-hud label { font-weight: 800; }
 .boss-hud span { color: var(--muted); font-size: 12px; }
+.boss-hud[data-exposed="true"] { border-color: var(--mint); }
+.boss-hud[data-exposed="true"] span { color: var(--mint); }
 #bossHealth::-webkit-meter-optimum-value { background: #ffa688; }
 
 .stage-status {
@@ -326,6 +329,7 @@ kbd { color: var(--mint); font: 750 11px ui-monospace, monospace; }
 @media (max-width: 900px) {
   .workbench { flex-direction: column; gap: 8px; }
   .key-guide { justify-content: center; }
+  .campaign-acts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 660px) {
@@ -435,7 +439,11 @@ kbd { color: var(--mint); font: 750 11px ui-monospace, monospace; }
               <div class="level-grid"></div>
             </section>
             <section class="campaign-act" aria-labelledby="actThree">
-              <h2 id="actThree">III. Into the Tower</h2>
+              <h2 id="actThree">III. Tower Approach</h2>
+              <div class="level-grid"></div>
+            </section>
+            <section class="campaign-act" aria-labelledby="actFour">
+              <h2 id="actFour">IV. The Grid Core</h2>
               <div class="level-grid"></div>
             </section>
           </div>
@@ -465,7 +473,7 @@ kbd { color: var(--mint); font: 750 11px ui-monospace, monospace; }
         </div>
         <div id="bossHud" class="boss-hud" hidden>
           <label for="bossHealth">The Warden</label>
-          <meter id="bossHealth" min="0" max="36" value="36"></meter>
+          <meter id="bossHealth" min="0"></meter>
           <span id="bossState"></span>
         </div>
         <p id="status" class="stage-status" role="status">Finish locked</p>
@@ -1083,6 +1091,16 @@ const playPrologue = createPrologue(ui.prologue);
 const floorY = 490;
 const startX = 120;
 const tick = 1000 / 60;
+const flightDrain = 0.94;
+const flightStartEnergy = 12;
+const rechargeDelay = 36;
+const wardenHealth = 54;
+const wardenPhases = [
+  { moves: ["volley", "sweep"], warning: 54, opening: 123, damage: 22 },
+  { moves: ["strike", "volley", "sweep"], warning: 47, opening: 105, damage: 26 },
+  { moves: ["strike", "sweep", "volley"], warning: 40, opening: 89, damage: 29 }
+];
+const wardenCues = { volley: "Plasma volley", sweep: "Ground sweep", strike: "Lock-on strike" };
 const acts = [
   [{
     name: "Blackout District", width: 1600,
@@ -1163,6 +1181,33 @@ const acts = [
     bots: [[284, 0], [480, 1], [670, 2], [863, 3], [1062, 4], [1258, 5],
       [1446, 6], [1844, 8], [2047, 9], [2239, 10], [2428, 11]],
     hp: 4, speed: 2.07, damage: 25
+  }],
+  [{
+    name: "Dynamo Vault", width: 2300, chamber: "dynamo",
+    sky: ["#302332", "#94614c"], ridge: "#713f49", rock: "#443e47", trim: "#ffc87e",
+    platforms: [[206, 411, 335], [460, 318, 205], [710, 242, 282], [798, 414, 305],
+      [1145, 336, 174], [1370, 253, 176], [1569, 390, 262], [1855, 311, 197]],
+    bots: [[370, 0], [570, 1], [870, 2], [1005, 3], [1229, 4], [1465, 5], [1700, 6], [1970, 7]],
+    chargePads: [3, 6], hp: 3, speed: 1.91, damage: 20
+  }, {
+    name: "Signal Junction", width: 2570, chamber: "signal",
+    sky: ["#20293a", "#5e827f"], ridge: "#426161", rock: "#304850", trim: "#91e5c8",
+    platforms: [[210, 414, 215], [440, 332, 152], [601, 250, 165], [782, 169, 216],
+      [690, 414, 254], [1012, 342, 178], [1210, 254, 203], [1450, 335, 180],
+      [1665, 411, 170], [1863, 329, 158], [2043, 244, 190], [2251, 331, 174]],
+    bots: [[324, 0], [512, 1], [695, 2], [895, 3], [825, 4], [1090, 5],
+      [1305, 6], [1550, 7], [1951, 9], [2160, 10], [2320, 11]],
+    chargePads: [0, 5, 8], hp: 3, speed: 2, damage: 21
+  }, {
+    name: "Core Bridge", width: 2800, chamber: "bridge",
+    sky: ["#261f36", "#64668a"], ridge: "#4f455f", rock: "#363d54", trim: "#c4b7ff",
+    platforms: [[208, 414, 172], [407, 338, 253], [680, 280, 154], [860, 358, 215],
+      [1102, 410, 163], [1291, 333, 255], [1567, 250, 152], [1750, 329, 196],
+      [1981, 409, 161], [2174, 328, 207], [2408, 369, 196]],
+    bots: [[295, 0], [519, 1], [760, 2], [965, 3], [1187, 4], [1399, 5],
+      [1655, 6], [1846, 7], [2061, 8], [2255, 9], [2514, 10]],
+    chargePads: [4, 8], floorArcs: [[462, 147, 0], [922, 124, 77], [1342, 148, 130], [1798, 130, 48], [2220, 126, 115]],
+    hp: 4, speed: 2.05, damage: 22
   }, {
     name: "Overload Tower", width: 3240, finale: true,
     sky: ["#2f2339", "#a46967"], ridge: "#663f58", rock: "#343e50", trim: "#ffca88",
@@ -1174,6 +1219,7 @@ const acts = [
   }]
 ];
 const stages = acts.flat();
+const campaignVersion = 2;
 const debriefs = [
   "Dispatch: The district is clear. Get to the rooftops before the next patrol.",
   "Dispatch: I picked up a signal in the basin. Follow it to find the Warden's relay network.",
@@ -1185,13 +1231,16 @@ const debriefs = [
   "Dispatch: The tower lost its backup power. Climb Iron Summit to get above its perimeter.",
   "Dispatch: You can see the tower from here. Take the ridge around its defenses.",
   "Dispatch: The Warden is rerouting power through Blackout Spire. Break the link.",
-  "Dispatch: The spire is down. There's one last line of bots at the tower perimeter.",
-  "Dispatch: You're at Overload Tower. Take out its guards. Then hit the Warden when its shield drops."
+  "Dispatch: The spire is down. Clear the tower perimeter and find a way inside.",
+  "Dispatch: Get into Dynamo Vault. The Warden is drawing power from its generators.",
+  "Dispatch: The generators are offline. Take Signal Junction before the Warden can call in more bots.",
+  "Dispatch: The signal is cut. Watch for warning lights on Core Bridge. The floor is still live.",
+  "Dispatch: You're inside Overload Tower. Clear the guards. Dodge the Warden's strikes, then hit its exposed core."
 ];
 const upgradeLimit = 5;
 const upgradeOptions = {
   armor: { name: "Armor", base: 0, step: 8, unit: "% damage reduction", cost: 40, costStep: 30 },
-  energy: { name: "Energy Storage", base: 100, step: 25, unit: " max energy", cost: 50, costStep: 35 },
+  energy: { name: "Energy Storage", base: 80, step: 20, unit: " max energy", cost: 50, costStep: 35 },
   health: { name: "Health", base: 100, step: 20, unit: " max health", cost: 55, costStep: 35 }
 };
 const progressKey = "electron-energy-progress-v1";
@@ -1248,6 +1297,8 @@ function loadProgress() {
     ? saved.ownedSkins.filter((id) => typeof id === "string" && Object.hasOwn(skinCatalog, id))
     : [];
   const ownedSkins = [...new Set(["pilot", ...unlocked])];
+  // Earlier campaigns ended after Tower Perimeter; keep those clears and open the new route.
+  const chapterCap = saved?.campaignVersion === campaignVersion ? stages.length : 12;
   return {
     credits: Number.isSafeInteger(credits) && credits >= 0 ? credits : 0,
     upgrades: Object.fromEntries(Object.keys(upgradeOptions).map((id) => {
@@ -1257,8 +1308,9 @@ function loadProgress() {
     ownedSkins,
     skin: ownedSkins.includes(saved?.skin) ? saved.skin : "pilot",
     campaignPrologueSeen: saved?.campaignPrologueSeen === true,
+    campaignVersion,
     chaptersCleared: saved?.campaignPrologueSeen === true && Number.isInteger(saved?.chaptersCleared)
-      ? Math.max(0, Math.min(stages.length, saved.chaptersCleared)) : 0
+      ? Math.max(0, Math.min(chapterCap, saved.chaptersCleared)) : 0
   };
 }
 
@@ -1285,6 +1337,12 @@ function awardCredits(amount) {
   progress.credits = Math.min(Number.MAX_SAFE_INTEGER, progress.credits + amount);
   saveProgress();
   syncCredits();
+}
+
+function chapterReward() {
+  if (stageIndex < progress.chaptersCleared) return stage().finale ? 20 : 5 + Math.floor(stageIndex / 4);
+  const guardBonus = bots.length * (4 + Math.floor(stageIndex / 4));
+  return guardBonus + (stage().finale ? 115 : 18 + stageIndex * 3);
 }
 
 function upgradeValue(id, level = progress.upgrades[id]) {
@@ -1342,7 +1400,7 @@ function launchStage(index, atWarden = false) {
   player = {
     body: actor(atWarden ? layout.width - 650 : startX - 50, floorY - 23, 28, 44),
     facing: 1, hp: maxHealth, maxHealth, energy: maxEnergy, maxEnergy,
-    cooldown: 0, invulnerable: 0, coyote: 0, flying: false
+    cooldown: 0, invulnerable: 0, coyote: 0, flying: false, flightLocked: false, rechargeWait: 0
   };
   bots = layout.bots.map(([x, ledge], index) => {
     const [left, y, width] = layout.platforms[ledge];
@@ -1410,11 +1468,17 @@ function input(action) {
 
 function standing(body) {
   if (body.velocity.y < -0.1) return false;
-  const feet = body.bounds.max.y;
-  if (Math.abs(feet - floorY) < 3) return true;
-  return stage().platforms.some(([x, y, width]) =>
-    Math.abs(feet - y) < 3 && body.bounds.max.x > x && body.bounds.min.x < x + width
-  );
+  if (Math.abs(body.bounds.max.y - floorY) < 3) return true;
+  return stage().platforms.some((deck) => deckContact(body, deck));
+}
+
+function spendEnergy(amount) {
+  player.energy = Math.max(0, player.energy - amount);
+  player.rechargeWait = rechargeDelay;
+  if (player.energy === 0 && player.flying) {
+    player.flying = false;
+    player.flightLocked = true;
+  }
 }
 
 function cast(target) {
@@ -1428,7 +1492,7 @@ function cast(target) {
   const vx = length ? dx / length : player.facing;
   const vy = length ? dy / length : 0;
   if (Math.abs(vx) > 0.12) player.facing = Math.sign(vx);
-  player.energy -= power.cost;
+  spendEnergy(power.cost);
   player.cooldown = 15;
   shots.push({ x, y, vx: vx * power.speed, vy: vy * power.speed,
     power, life: power.life, hit: new Set() });
@@ -1496,10 +1560,7 @@ function shotCollides(shot) {
     bot.hp -= shot.power.damage;
     bot.stun = shot.power.stun || 16;
     burst(shot.x, shot.y, shot.power.color, bot.hp <= 0 ? 18 : 7);
-    if (bot.hp <= 0) {
-      Composite.remove(engine.world, bot.body);
-      awardCredits(10 + stageIndex);
-    }
+    if (bot.hp <= 0) Composite.remove(engine.world, bot.body);
     if (!shot.power.pierce) return true;
   }
   if (boss?.active && boss.hp > 0 && hit(boss.body, shot, 6)) {
@@ -1511,7 +1572,6 @@ function shotCollides(shot) {
         Composite.remove(engine.world, boss.body);
         burst(boss.x, floorY - 70, "#a7ffdc", 50);
         shots.forEach((other) => { if (other.hostile) other.life = 0; });
-        awardCredits(150);
       }
     }
     return true;
@@ -1520,9 +1580,40 @@ function shotCollides(shot) {
 }
 
 function createWarden(x, active) {
-  const maxHp = 36;
-  return { x, hp: maxHp, active, exposed: false, clock: 0, turn: 0,
+  return { x, hp: wardenHealth, active, exposed: false, opening: 0, tier: 0, turn: 0,
+    attack: null, chain: null,
     body: Bodies.rectangle(x, floorY - 56, 106, 112, { isStatic: true }) };
+}
+
+function aimWarden(move) {
+  const { x, y } = player.body.position;
+  const profile = wardenPhases[boss.tier];
+  const direction = x < boss.x ? -1 : 1;
+  const boltX = boss.x + direction * 56;
+  const lanes = move !== "strike" ? [] : (boss.tier === 2 ? [x - 108, x, x + 108] : [x])
+    .map((center) => Math.max(36, Math.min(finishX() - 26, center)));
+  return { move, x, y, direction, boltX, lanes, clock: 0, warning: profile.warning,
+    damage: profile.damage, duration: move === "strike" ? 19 : 16 };
+}
+
+function fireWarden(attack) {
+  const { boltX: x, direction, move, damage } = attack;
+  const y = floorY - 63;
+  if (move === "sweep") {
+    for (const height of (boss.tier ? [11, 29, 47] : [11, 29])) {
+      shots.push({ x, y: floorY - height, vx: direction * (9.5 + boss.tier),
+        vy: 0, damage, life: 68, hostile: true, warden: true });
+    }
+  } else if (move === "volley") {
+    const aim = Math.atan2(attack.y - y, attack.x - x);
+    const speed = 8.7 + 0.8 * boss.tier;
+    for (let i = -1 - boss.tier; i <= 1 + boss.tier; i++) {
+      const angle = aim + i * 0.16;
+      shots.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+        damage, life: 74, hostile: true, warden: true });
+    }
+  }
+  burst(x, y, "#ff865f", 12);
 }
 
 function stepWarden() {
@@ -1534,36 +1625,46 @@ function stepWarden() {
     player.energy = player.maxEnergy;
     shots.forEach((shot) => { if (shot.hostile) shot.life = 0; });
   }
-  const { x, y } = player.body.position;
-  if (boss.clock === 0 && Math.abs(x - boss.x) > 335) return;
-  const tier = boss.hp > 24 ? 0 : boss.hp > 12 ? 1 : 2;
-  const sweep = boss.turn % 2 === 1;
-  const direction = x < boss.x ? -1 : 1;
-  boss.clock++;
-  if (boss.clock === 61 || (tier === 2 && boss.clock === 87)) {
-    const sx = boss.x + direction * 55;
-    if (sweep) {
-      for (const height of (tier ? [10, 30, 52] : [12, 27])) {
-        shots.push({ x: sx, y: floorY - height, vx: direction * 9,
-          vy: 0, damage: 17 + tier * 3, life: 77, hostile: true, warden: true });
-      }
+  if (boss.opening > 0) {
+    boss.exposed = --boss.opening > 0;
+    return;
+  }
+  if (!boss.attack) {
+    if (!boss.chain) {
+      if (Math.abs(player.body.position.x - boss.x) > 345) return;
+      const tier = boss.hp > wardenHealth * 2 / 3 ? 0 : boss.hp > wardenHealth / 3 ? 1 : 2;
+      if (tier !== boss.tier) boss.turn = 0;
+      boss.tier = tier;
+      const moves = wardenPhases[tier].moves;
+      const move = moves[boss.turn % moves.length];
+      boss.chain = tier === 2 ? moves[(boss.turn + 1) % moves.length] : null;
+      boss.attack = aimWarden(move);
     } else {
-      const sy = floorY - 64;
-      const aim = Math.atan2(y - sy, x - sx);
-      for (let i = -1 - tier; i <= 1 + tier; i++) {
-        const angle = aim + i * 0.16;
-        shots.push({ x: sx, y: sy, vx: Math.cos(angle) * 8.5, vy: Math.sin(angle) * 8.5,
-          damage: 18 + tier * 3, life: 77, hostile: true, warden: true });
-      }
+      boss.attack = aimWarden(boss.chain);
+      boss.chain = null;
     }
-    burst(sx, floorY - 64, "#ff865f", 12);
   }
-  boss.exposed = boss.clock >= 100;
-  if (boss.clock >= 237 - tier * 13) {
-    boss.exposed = false;
-    boss.clock = 0;
+  const attack = boss.attack;
+  attack.clock++;
+  if (attack.clock === attack.warning) fireWarden(attack);
+  if (attack.clock < attack.warning) return;
+  if (attack.lanes.some((x) => Math.abs(x - player.body.position.x) < 33)) damagePlayer(attack.damage);
+  if (attack.clock >= attack.warning + attack.duration) {
+    boss.attack = null;
+    if (boss.chain) return;
     boss.turn++;
+    boss.opening = wardenPhases[boss.tier].opening;
+    boss.exposed = true;
   }
+}
+
+function deckContact(body, [left, top, width]) {
+  return Math.abs(body.bounds.max.y - top) < 3 && body.bounds.max.x > left && body.bounds.min.x < left + width;
+}
+
+function floorArcPhase(offset) {
+  const time = (frame + offset) % 212;
+  return time < 40 ? "warning" : time < 68 ? "live" : "idle";
 }
 
 function simulate() {
@@ -1576,19 +1677,26 @@ function simulate() {
   let vy = body.velocity.y;
   const jump = nextJump;
   nextJump = false;
-  player.flying = input("flight") && player.energy > 0.9;
+  const flightHeld = input("flight");
+  player.rechargeWait = Math.max(0, player.rechargeWait - 1);
+  if (!flightHeld) player.flightLocked = false;
+  else if (!player.flying && player.energy < flightStartEnergy) player.flightLocked = true;
+  player.flying = flightHeld && !player.flightLocked;
+  if (player.flying) spendEnergy(flightDrain);
   if (jump && player.coyote > 0) {
     vy = -9.7;
     player.coyote = 0;
   } else if (player.flying) {
     vy = Math.max(-5.5, vy - 0.95);
-    player.energy -= 0.65;
     if (frame % 3 === 0) burst(body.position.x - player.facing * 16, body.position.y + 9, "#a7ffdc", 2);
   }
   const edge = Math.max(18, Math.min(stage().width - 18, body.position.x));
   if (edge !== body.position.x) Body.setPosition(body, { x: edge, y: body.position.y });
   Body.setVelocity(body, { x: axis * (player.flying ? 7.2 : 5.65), y: Math.min(vy, 15) });
-  if (!player.flying) player.energy = Math.min(player.maxEnergy, player.energy + 0.31);
+  if (!player.flying && player.rechargeWait === 0) {
+    const charging = body.velocity.y >= -0.1 && stage().chargePads?.some((index) => deckContact(body, stage().platforms[index]));
+    player.energy = Math.min(player.maxEnergy, player.energy + (charging ? 0.96 : 0.19));
+  }
   player.cooldown = Math.max(0, player.cooldown - 1);
   player.invulnerable = Math.max(0, player.invulnerable - 1);
   if (input("attack")) cast();
@@ -1608,6 +1716,8 @@ function simulate() {
   }
   stepWarden();
   Engine.update(engine, tick);
+  if (body.bounds.max.y > floorY - 20 && stage().floorArcs?.some(([x, width, offset]) =>
+    body.bounds.max.x > x && body.bounds.min.x < x + width && floorArcPhase(offset) === "live")) damagePlayer(16);
   moveShots();
   for (const spark of sparks) {
     spark.x += spark.vx;
@@ -1627,7 +1737,7 @@ function simulate() {
       boss?.active ? "Retry the Warden" : "Retry chapter");
   } else if (!barrier && body.position.x >= finishX() && body.position.y >= floorY - 134) {
     phase = "cleared";
-    const bonus = stage().finale ? 200 : 25 + stageIndex * 5;
+    const bonus = chapterReward();
     progress.chaptersCleared = Math.max(progress.chaptersCleared, stageIndex + 1);
     awardCredits(bonus);
     const last = stageIndex === stages.length - 1;
@@ -1651,9 +1761,12 @@ function syncHud() {
   syncMeter(ui.energy, ui.energyAmount, player.energy, player.maxEnergy);
   ui.bossHud.hidden = !boss?.active;
   if (boss?.active) {
+    if (ui.bossHealth.max !== wardenHealth) ui.bossHealth.max = wardenHealth;
     ui.bossHealth.value = boss.hp;
-    setText(ui.bossState, boss.hp <= 0 ? "Offline" : boss.exposed ? "Core exposed" :
-      boss.clock > 0 && boss.clock < 61 ? (boss.turn % 2 ? "Ground sweep charging" : "Plasma burst charging") : "Shielded");
+    const state = boss.exposed ? "Core exposed" : boss.attack ? wardenCues[boss.attack.move] : "Shielded";
+    setText(ui.bossState, boss.hp <= 0 ? "Offline" : "Phase " + (boss.tier + 1) + "/3: " + state);
+    const exposed = String(boss.exposed && boss.hp > 0);
+    if (ui.bossHud.dataset.exposed !== exposed) ui.bossHud.dataset.exposed = exposed;
   }
   const status = phase === "cleared" ? "Chapter complete" : !barrier
     ? (boss ? "Grid switch open" : "Finish open")
@@ -1913,6 +2026,39 @@ function background() {
     const towerX = (stage().width - 395 - x) * 0.43;
     storyTower(ctx, towerX, horizon, 1.22, restored || stage().finale);
   }
+  if (stage().chamber) drawChamber(ctx, stage().chamber, width, horizon, x * 0.57, 1);
+}
+
+function drawChamber(art, chamber, width, horizon, offset, scale) {
+  const stride = 340 * scale;
+  for (let i = Math.floor(offset / stride) - 1; i < (width + offset) / stride + 1; i++) {
+    art.save();
+    art.translate(i * stride - offset, horizon);
+    art.scale(scale, scale);
+    if (chamber === "dynamo") {
+      storyRect(art, "#49333c", 55, -264, 192, 264);
+      storyRect(art, "#332b35", 70, -240, 162, 240);
+      for (const p of [79, 132, 185]) {
+        storyRect(art, "#594354", p, -204, 38, 118);
+        for (let y = -192; y < -96; y += 16) storyRect(art, "#c38058", p + 4, y, 30, 4);
+      }
+      storyLine(art, "#81505a", 11, [[0, -70], [115, -70], [115, -32], [340, -32]]);
+    } else if (chamber === "signal") {
+      storyLine(art, "#446464", 7, [[0, -56], [83, -56], [163, -137], [340, -137]]);
+      storyLine(art, "#608684", 4, [[0, -46], [83, -46], [163, -126], [340, -126]]);
+      storyRect(art, "#344b54", 187, -248, 13, 248);
+      for (const y of [-206, -180, -154]) {
+        storyRect(art, "#2d414c", 169, y, 49, 12);
+        storyRect(art, "#8ec0a7", 174, y + 4, 12, 3);
+        storyRect(art, "#447969", 191, y + 4, 21, 3);
+      }
+    } else {
+      storyShape(art, "#413953", [[25, 0], [101, -280], [219, -280], [304, 0], [262, 0], [194, -245], [125, -245], [66, 0]]);
+      storyLine(art, "#79799f", 6, [[0, -108], [90, -108], [133, -151], [210, -151], [255, -108], [340, -108]]);
+      for (const x of [113, 185, 252]) storyRect(art, "#b593cd", x, -106, 8, 13);
+    }
+    art.restore();
+  }
 }
 
 function platform(x, y, width, height) {
@@ -2029,22 +2175,58 @@ function drawShot(shot) {
 }
 
 function drawWarden() {
-  const { x, active, hp, exposed, clock, turn } = boss;
-  const charging = active && hp > 0 && clock > 0 && clock < 61;
-  const core = !active || hp <= 0 ? "#53626c" : exposed ? "#a7ffdc" : "#ff9976";
-  if (charging) {
-    const aim = player.body.position;
-    const sx = x + Math.sign(aim.x - x) * 55;
-    const sy = floorY - 64;
-    const color = clock % 12 < 6 ? "#ffac6f" : "#bc5c4d";
-    if (turn % 2 === 1) storyLine(ctx, color, 2, [[Math.max(0, x - 412), floorY - 29], [x + 245, floorY - 29]]);
-    else storyLine(ctx, color, 2, [[sx, sy], [aim.x, aim.y]]);
+  const { x, active, hp, exposed, attack } = boss;
+  const core = !active || hp <= 0 ? "#53626c" : exposed ? "#a7ffdc" : boss.tier === 2 ? "#f5a4ff" : "#ff9976";
+  if (attack && hp > 0) {
+    const color = "#ffac6f";
+    const warning = attack.clock < attack.warning;
+    if (attack.move === "strike") {
+      for (const lane of attack.lanes) {
+        if (warning) {
+          box("#ffc17c33", lane - 25, 0, 50, floorY);
+          box(color, lane - 25, floorY - 5, 50, 5);
+          for (let y = 20; y < floorY - 14; y += 29) {
+            box("#ffac6f88", lane - 25, y, 2, 13);
+            box("#ffac6f88", lane + 23, y, 2, 13);
+          }
+        } else {
+          box("#f071b363", lane - 25, 0, 50, floorY);
+          const path = Array.from({ length: 10 }, (_, i) =>
+            [lane + (i === 9 ? 0 : Math.sin(i * 8 + frame * 0.32) * 15), i * floorY / 9]);
+          storyLine(ctx, "#f7a0f0", 10, path);
+          storyLine(ctx, "#fff4fa", 3, path);
+        }
+      }
+    } else if (warning) {
+      if (attack.move === "sweep") {
+        const edge = Math.max(0, Math.min(stage().width, x + attack.direction * 460));
+        box("#ffac6f30", Math.min(edge, attack.boltX), floorY - 47, Math.abs(edge - attack.boltX), 47);
+        storyLine(ctx, color, 2, [[attack.boltX, floorY - 20], [edge, floorY - 20]]);
+      } else {
+        storyLine(ctx, color, 2, [[attack.boltX, floorY - 63], [attack.x, attack.y]]);
+      }
+    }
   }
   storyWarden(ctx, x, floorY, 1, core, active && hp > 0 && !exposed);
   if (exposed && hp > 0 && frame % 28 < 17) {
     const size = 23 + (frame % 28) * 0.4;
     storyLine(ctx, "#a7ffdc", 1, [[x, floorY - 65 - size], [x + size, floorY - 65],
       [x, floorY - 65 + size], [x - size, floorY - 65], [x, floorY - 65 - size]]);
+  }
+}
+
+function drawFloorArcs(arcs) {
+  for (const [x, width, offset] of arcs) {
+    const state = floorArcPhase(offset);
+    const live = state === "live";
+    box(state === "idle" ? "#5d5876" : live ? "#e1b8ff" : "#ffca79", x, floorY - 3, width, 7);
+    for (let i = 8; i < width - 4; i += 16) box("#34293f", x + i, floorY - 2, 6, 5);
+    if (live) {
+      box("#bf7aff45", x, floorY - 22, width, 20);
+      const path = Array.from({ length: 12 }, (_, i) =>
+        [x + i * width / 11, floorY - 8 - Math.abs(Math.sin(i * 7 + frame * 0.31)) * 15]);
+      storyLine(ctx, "#eac6ff", 3, path);
+    }
   }
 }
 
@@ -2068,12 +2250,17 @@ function draw() {
   drawGate(startX, false);
   drawGate(finishX(), true);
   platform(0, floorY, stage().width, view.height);
-  for (const [left, top, width] of stage().platforms) {
+  for (const [index, [left, top, width]] of stage().platforms.entries()) {
     for (const side of [left + 9, left + width - 15]) {
       box("#283739", side, top + 23, 6, floorY - top - 23);
     }
     platform(left, top, width, 24);
+    if (stage().chargePads?.includes(index)) {
+      box("#9fffe1", left, top, width, 5);
+      for (let i = 15; i < width - 15; i += 20) box("#69d1ad", left + i, top + 10, 8, 2);
+    }
   }
+  if (stage().floorArcs) drawFloorArcs(stage().floorArcs);
   for (const bot of bots) if (bot.hp > 0) drawBot(bot);
   if (boss) drawWarden();
   for (const shot of shots) drawShot(shot);
@@ -2118,18 +2305,22 @@ function drawLevelPreview(button, layout) {
   art.lineTo(width, ground);
   art.lineTo(0, ground);
   art.fill();
+  if (layout.chamber) drawChamber(art, layout.chamber, width, ground, 0, 0.41);
 
   const scaleX = width / layout.width;
   const scaleY = (ground - 12) / floorY;
   art.fillStyle = layout.rock;
   art.fillRect(0, ground, width, height - ground);
-  for (const [x, y, length] of layout.platforms) {
+  for (const [index, [x, y, length]] of layout.platforms.entries()) {
     art.fillStyle = layout.rock;
     art.fillRect(x * scaleX + 2, y * scaleY + 10, 2, ground - y * scaleY - 10);
     art.fillRect((x + length) * scaleX - 4, y * scaleY + 10, 2, ground - y * scaleY - 10);
     art.fillRect(x * scaleX, y * scaleY + 10, length * scaleX, 7);
-    art.fillStyle = layout.trim;
+    art.fillStyle = layout.chargePads?.includes(index) ? "#9fffe1" : layout.trim;
     art.fillRect(x * scaleX, y * scaleY + 10, length * scaleX, 2);
+  }
+  for (const [x, length] of layout.floorArcs ?? []) {
+    storyRect(art, "#e1b8ff", x * scaleX, ground - 1, length * scaleX, 3);
   }
 
   art.fillStyle = "#a7ffdc";
