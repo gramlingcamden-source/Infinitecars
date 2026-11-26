@@ -1262,8 +1262,7 @@ const keyActions = {
   KeyA: "left", ArrowLeft: "left", KeyD: "right", ArrowRight: "right",
   Space: "jump", KeyW: "jump", ArrowUp: "jump", KeyF: "attack", ShiftLeft: "flight", ShiftRight: "flight"
 };
-const keys = new Set();
-const touches = new Map();
+const heldActions = new Map();
 const view = { scale: 1, width: 0, height: 0, x: 0, y: 0, dpr: 1 };
 const music = { enabled: true, audio: null, timer: null, beat: 0 };
 let engine;
@@ -1455,15 +1454,28 @@ function showResult(title, description, button) {
 }
 
 function resetInput() {
-  keys.clear();
-  touches.clear();
+  heldActions.clear();
   nextJump = false;
 }
 
+function holdAction(source, action) {
+  if (heldActions.has(source)) return;
+  heldActions.set(source, action);
+  if (action === "jump") nextJump = true;
+}
+
 function input(action) {
-  for (const code of keys) if (keyActions[code] === action) return true;
-  for (const held of touches.values()) if (held === action) return true;
+  for (const held of heldActions.values()) if (held === action) return true;
   return false;
+}
+
+function movementAxis() {
+  let axis = 0;
+  // Entries keep their original press order, even when a held key repeats.
+  for (const action of heldActions.values()) {
+    if (action === "left" || action === "right") axis = action === "left" ? -1 : 1;
+  }
+  return axis;
 }
 
 function standing(body) {
@@ -1671,7 +1683,7 @@ function simulate() {
   if (phase !== "playing" || ui.upgradeShop.open) return;
   frame++;
   const body = player.body;
-  const axis = Number(input("right")) - Number(input("left"));
+  const axis = movementAxis();
   if (axis) player.facing = axis;
   player.coyote = standing(body) ? 5 : Math.max(0, player.coyote - 1);
   let vy = body.velocity.y;
@@ -2403,22 +2415,30 @@ ui.musicButton.addEventListener("click", () => {
 });
 
 window.addEventListener("keydown", (event) => {
+  if (event.altKey || event.ctrlKey || event.metaKey) {
+    resetInput();
+    return;
+  }
   if (ui.upgradeShop.open) return;
   if (event.key === "Escape" && phase !== "home") {
     showHome();
     return;
   }
-  if (phase !== "playing" || event.target.closest?.("button")) return;
+  if (phase !== "playing" || (event.code === "Space" && event.target.closest?.("button"))) return;
   const powerIndex = Number(event.key) - 1;
   if (/^[1-7]$/.test(event.key)) selectPower(powerIndex);
   const action = keyActions[event.code];
   if (!action) return;
   event.preventDefault();
-  if (action === "jump" && !keys.has(event.code)) nextJump = true;
-  keys.add(event.code);
+  if (!event.repeat) holdAction(event.code, action);
 });
-window.addEventListener("keyup", (event) => keys.delete(event.code));
+window.addEventListener("keyup", (event) => heldActions.delete(event.code), true);
 window.addEventListener("blur", resetInput);
+window.addEventListener("focus", resetInput);
+window.addEventListener("pagehide", resetInput);
+document.addEventListener("visibilitychange", resetInput);
+canvas.addEventListener("blur", resetInput);
+canvas.addEventListener("contextmenu", resetInput);
 canvas.addEventListener("pointerdown", (event) => {
   if (event.button !== 0 || phase !== "playing") return;
   const bounds = canvas.getBoundingClientRect();
@@ -2428,17 +2448,15 @@ canvas.addEventListener("pointerdown", (event) => {
 });
 document.querySelectorAll("[data-action]").forEach((button) => {
   button.addEventListener("pointerdown", (event) => {
-    if (phase !== "playing") return;
+    if (phase !== "playing" || event.button !== 0) return;
     event.preventDefault();
-    const { action } = button.dataset;
-    if (action === "jump") nextJump = true;
-    else touches.set(event.pointerId, action);
     button.setPointerCapture(event.pointerId);
+    holdAction(event.pointerId, button.dataset.action);
   });
-  for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
-    button.addEventListener(type, (event) => touches.delete(event.pointerId));
-  }
 });
+for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
+  window.addEventListener(type, (event) => heldActions.delete(event.pointerId), true);
+}
 
 renderLevelMenu();
 renderPowers();
