@@ -71,8 +71,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding: 0;
   background: var(--surface);
   color: var(--text);
+  overflow: hidden;
 }
+.shop-dialog[open] { display: flex; flex-direction: column; }
 .shop-dialog::backdrop { background: #0a0e11ba; }
+.shop-header, .shop-tabs, .shop-feedback { flex-shrink: 0; }
 .shop-header {
   display: flex;
   align-items: center;
@@ -85,6 +88,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .shop-tabs { display: flex; gap: 6px; padding: 12px 18px 4px; }
 .shop-tabs .secondary { flex: 1 1 0; }
 .shop-tabs [aria-pressed="true"] { border-color: var(--mint); color: var(--mint); background: #2f4340; }
+.upgrade-list, .skin-list { min-height: 0; overflow: auto; overscroll-behavior: contain; }
 .upgrade-list { padding: 0 18px; }
 .upgrade-row {
   display: grid;
@@ -100,7 +104,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .upgrade-buy { min-width: 84px; color: var(--mint); font-weight: 750; white-space: nowrap; }
 .upgrade-buy:disabled { color: var(--muted); background: #202729; cursor: default; }
 .shop-feedback { min-height: 20px; margin: 12px 18px 16px; color: var(--mint); font-size: 14px; }
-.skin-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 8px 18px 0; }
+.skin-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-content: start; gap: 8px; padding: 8px 18px 8px; }
 .skin-card {
   min-width: 0;
   display: grid;
@@ -608,7 +612,27 @@ const skinCatalog = {
   bear: { name: "Bear", cost: 135, color: "#c79774" },
   polarBear: { name: "Polar Bear", cost: 165, color: "#e4f1f8" },
   cookie: { name: "Cookie", cost: 90, color: "#f0b777" },
-  chameleon: { name: "Chameleon", cost: 180, color: "#b7df75" }
+  chameleon: { name: "Chameleon", cost: 180, color: "#b7df75" },
+  ronaldo: { name: "Cristiano Ronaldo", cost: 210, color: "#ec7c77" },
+  eagle: { name: "Eagle", cost: 140, color: "#ebc975" },
+  trump: { name: "Donald Trump", cost: 200, color: "#e5b678" },
+  obama: { name: "Barack Obama", cost: 200, color: "#a6bfe6" },
+  tomCruise: { name: "Tom Cruise", cost: 190, color: "#c3a782" },
+  tomHolland: { name: "Tom Holland", cost: 190, color: "#eb8d89" },
+  mario: { name: "Mario", cost: 230, color: "#f78075" },
+  luigi: { name: "Luigi", cost: 215, color: "#80cd85" },
+  worm: { name: "Worm", cost: 60, color: "#f1a4b0" },
+  snail: { name: "Snail", cost: 75, color: "#d2be83" },
+  peanutButterJar: { name: "Peanut Butter Jar", cost: 95, color: "#e8ad69" },
+  jellySandwich: { name: "Jelly Sandwich", cost: 85, color: "#e3a0c8" }
+};
+
+const portraitSkins = {
+  ronaldo: { face: "#d89973", hair: "#2d2429", coat: "#c53841", accent: "#ffe09d", pants: "#28504a", outfit: "jersey" },
+  trump: { face: "#e9ac7f", hair: "#e9bf72", coat: "#26354e", accent: "#dc4851", pants: "#313b51", outfit: "suit" },
+  obama: { face: "#b77855", hair: "#2b252c", coat: "#313e56", accent: "#82abc9", pants: "#333e53", outfit: "suit" },
+  tomCruise: { face: "#d49d78", hair: "#3c2d30", coat: "#62564a", accent: "#cbb37c", pants: "#3b464c", outfit: "bomber" },
+  tomHolland: { face: "#eab38b", hair: "#5d392e", coat: "#aa4850", accent: "#f1dcba", pants: "#38526e", outfit: "bomber" }
 };
 
 function drawSkinSprite(context, id, stride = 0, armored = false) {
@@ -630,6 +654,59 @@ function drawSkinSprite(context, id, stride = 0, armored = false) {
     rect(feet, -14, 19 + stride / 2, 12, 5);
     rect(feet, 2, 19 - stride / 2, 12, 5);
   };
+
+  if (Object.hasOwn(portraitSkins, id)) {
+    const { face, hair, coat, accent, pants, outfit } = portraitSkins[id];
+    legs(pants, "#293039", outfit === "jersey" ? "#ebc674" : "#252633");
+    shape("#282631", [[-17, 8], [-17, -6], [-10, -12], [10, -12], [17, -6], [17, 7], [11, 15], [-12, 15]]);
+    shape(coat, [[-14, -5], [-8, -10], [9, -10], [14, -5], [13, 9], [9, 13], [-10, 13], [-14, 7]]);
+    rect(face, -16, 5, 5, 6);
+    rect(face, 12, 5, 6, 6);
+    if (outfit === "suit") {
+      shape("#f2e6d4", [[-7, -10], [8, -10], [1, 6]]);
+      shape(accent, [[-1, -6], [4, -6], [3, 10], [-1, 12], [-3, 9], [0, -3]]);
+      rect("#d2b981", -10, -2, 3, 2);
+    } else if (outfit === "jersey") {
+      rect(accent, 1, -5, 7, 2);
+      rect(accent, 6, -3, 2, 7);
+      rect("#e77a6b", -13, -5, 5, 3);
+      rect(coat, -12, 15, 9, 5);
+      rect(coat, 3, 15, 9, 5);
+    } else {
+      rect("#e8d9ba", -3, -6, 8, 16);
+      rect(accent, 5, -4, 2, 16);
+      rect(accent, -11, -1, 4, 3);
+    }
+    shape("#593b3a", [[-10, -24], [-4, -27], [9, -26], [13, -22], [13, -14], [8, -8], [-6, -9], [-10, -14]]);
+    shape(face, [[-8, -24], [8, -24], [11, -21], [11, -17], [14, -15], [12, -11], [7, -9], [-6, -10], [-8, -14]]);
+    rect("#3b2830", 1, -19, 3, 2);
+    rect("#3b2830", 8, -19, 3, 2);
+    rect(id === "obama" ? "#f0cbb0" : "#885044", 6, -13, 5, 1);
+    if (id === "trump") {
+      shape(hair, [[-12, -19], [-13, -26], [-8, -30], [8, -29], [15, -25], [15, -22],
+        [7, -24], [0, -22], [-6, -23], [-8, -17], [-11, -16]]);
+      rect("#f5d597", -8, -27, 17, 2);
+    } else if (id === "obama") {
+      shape(hair, [[-11, -18], [-11, -24], [-6, -28], [8, -28], [12, -24], [12, -22], [-6, -23], [-8, -17]]);
+      rect("#665457", -6, -27, 4, 1);
+    } else if (id === "tomHolland") {
+      shape(hair, [[-13, -16], [-13, -23], [-10, -23], [-11, -27], [-6, -27], [-3, -30],
+        [7, -28], [9, -29], [14, -24], [11, -21], [7, -23], [1, -22], [-5, -20]]);
+      rect("#875643", -5, -26, 12, 2);
+    } else {
+      shape(hair, [[-12, -16], [-13, -23], [-9, -28], [8, -29], [11, -26], [14, -25],
+        [11, -22], [3, -23], [-5, -22], [-8, -16]]);
+      rect("#695049", -6, -26, 12, 2);
+    }
+    if (id === "tomCruise") {
+      rect("#ccb27d", -6, -20, 20, 2);
+      rect("#283842", -5, -19, 7, 4);
+      rect("#283842", 5, -19, 8, 4);
+      rect("#69878c", -4, -19, 4, 1);
+      rect("#69878c", 6, -19, 5, 1);
+    }
+    return;
+  }
 
   switch (id) {
     case "shark":
@@ -730,6 +807,125 @@ function drawSkinSprite(context, id, stride = 0, armored = false) {
       rect("#343847", 10, -14, 4, 5);
       rect("#eff0c8", 12, -14, 2, 2);
       rect("#5f7954", 13, -6, 5, 2);
+      break;
+    case "eagle": {
+      const wing = Math.round(stride * 0.9);
+      legs("#73503a", "#48363a", "#e9a74b");
+      shape("#413037", [[-16, 4], [-32, 15], [-29, 4], [-34, 0], [-19, -4], [-8, -13],
+        [11, -15], [20, -7], [13, 5], [7, 16], [-10, 15]]);
+      shape("#a36845", [[-16, 0], [-9, -10], [11, -12], [15, -3], [7, 13], [-10, 12]]);
+      shape("#654035", [[1, -3], [-11, -5], [-29, -15 + wing], [-31, -6 + wing],
+        [-21, 9 + wing], [-10, 13], [3, 6]]);
+      shape("#bf8856", [[-25, -8 + wing], [-12, -3], [-2, 0], [-12, 6], [-20, 2 + wing]]);
+      shape("#e6e2d8", [[1, -8], [1, -19], [7, -25], [18, -25], [23, -20], [23, -13], [15, -7], [11, -10], [7, -6]]);
+      shape("#f5be54", [[17, -15], [25, -18], [30, -14], [29, -10], [26, -8], [25, -12], [18, -12]]);
+      rect("#4a3334", 16, -20, 4, 3);
+      rect("#f9f3e0", 16, -21, 3, 1);
+      break;
+    }
+    case "mario":
+    case "luigi": {
+      const taller = id === "luigi";
+      const cap = taller ? "#4aa85e" : "#d34342";
+      const shadow = taller ? "#287853" : "#902f38";
+      legs("#4467a5", "#294675", "#5c3d39");
+      shape(cap, [[-16, 1], [-15, -8], [-8, -14], [9, -14], [17, -6], [16, 6], [10, 12], [-11, 12]]);
+      shape("#4264a4", [[-10, 13], [-10, 2], [-9, -10], [-4, -10], [-3, -1], [5, -1], [7, -10], [11, -9], [11, 13]]);
+      rect("#ffd483", -7, 1, 3, 4);
+      rect("#ffd483", 6, 1, 3, 4);
+      rect("#f9e8d7", -19, 0, 6, 8);
+      rect("#f9e8d7", 13, 0, 7, 8);
+      context.save();
+      context.translate(0, taller ? -3 : 0);
+      shape("#674235", [[-13, -16], [-11, -25], [10, -25], [14, -21], [14, -14], [9, -8], [-8, -9]]);
+      shape("#eab48b", [[-9, -20], [10, -21], [12, -18], [16, -16], [16, -13], [12, -11], [9, -8], [-6, -10], [-9, -14]]);
+      rect("#312931", 5, -19, 3, 4);
+      shape("#422a30", [[-2, -14], [4, -14], [7, -16], [12, -14], [14, -12], [9, -11], [6, -12], [2, -11]]);
+      shape(shadow, [[-14, -21], [-13, -27], [-7, -30], [7, -30], [13, -27], [14, -23], [19, -23], [20, -20], [-9, -19]]);
+      shape(cap, [[-12, -22], [-11, -27], [-6, -28], [7, -28], [12, -26], [13, -23], [17, -22], [5, -22]]);
+      rect("#faf0dd", -1, -27, 8, 6);
+      rect(shadow, 1, -26, 1, 4);
+      if (taller) rect(shadow, 2, -23, 3, 1);
+      else {
+        rect(shadow, 2, -25, 1, 1);
+        rect(shadow, 3, -24, 1, 1);
+        rect(shadow, 4, -25, 1, 1);
+        rect(shadow, 5, -26, 1, 4);
+      }
+      context.restore();
+      break;
+    }
+    case "worm": {
+      const sway = Math.round(stride / 3);
+      for (const [i, x] of [-25, -17, -8, 2, 11].entries()) {
+        const y = (i < 3 ? 14 - Math.abs(1 - i) * 2 : 13 - (i - 2) * 5) + (i % 2 ? -sway : sway);
+        shape("#7b3f55", [[x - 7, y], [x - 4, y - 6], [x + 4, y - 6], [x + 8, y - 1], [x + 6, y + 6], [x - 5, y + 7]]);
+        rect(i % 2 === 0 ? "#e88b9f" : "#f6a7b5", x - 4, y - 3, 9, 8);
+        rect("#ffc7ce", x - 2, y - 3, 4, 2);
+      }
+      shape("#803c55", [[9, 6], [11, -4], [13, -13], [18, -19], [27, -19], [33, -14], [34, -5], [28, 2], [22, 3], [18, 9]]);
+      shape("#f4a1ad", [[13, 6], [14, -4], [16, -12], [19, -16], [26, -16], [30, -13], [31, -6], [27, -1], [20, 0], [17, 5]]);
+      rect("#fff3e9", 22, -13, 7, 7);
+      rect("#493043", 26, -12, 3, 4);
+      rect("#7e4058", 24, -4, 5, 2);
+      break;
+    }
+    case "snail":
+      shape("#456052", [[-30, 17], [-22, 10], [5, 9], [15, 4], [18, -4], [25, -5], [31, 2], [33, 11], [29, 18], [14, 22], [-26, 23]]);
+      shape("#95bc81", [[-25, 17], [-20, 13], [7, 12], [18, 6], [20, -1], [25, -2], [28, 3], [30, 10], [26, 15], [14, 19], [-25, 20]]);
+      shape("#563f46", [[-26, 8], [-27, -7], [-21, -18], [-9, -23], [4, -20], [14, -13], [18, -2], [14, 11], [4, 17], [-17, 17]]);
+      shape("#a87152", [[-23, 7], [-24, -6], [-19, -15], [-9, -20], [3, -18], [11, -12], [15, -2], [11, 9], [3, 14], [-16, 14]]);
+      context.strokeStyle = "#e1ad70";
+      context.lineWidth = 3;
+      context.beginPath();
+      context.moveTo(-18, 7);
+      context.bezierCurveTo(-28, -23, 11, -20, 9, -3);
+      context.bezierCurveTo(9, 13, -16, 8, -12, -4);
+      context.bezierCurveTo(-8, -12, 2, -7, 1, -1);
+      context.stroke();
+      rect("#55765a", 19, -16, 3, 17);
+      rect("#55765a", 28, -19, 3, 22);
+      rect("#eff0c5", 17, -19, 8, 7);
+      rect("#eff0c5", 25, -23, 9, 8);
+      rect("#31343c", 22, -17, 3, 4);
+      rect("#31343c", 30, -21, 3, 4);
+      rect("#6a6352", 25, 8, 5, 2);
+      break;
+    case "peanutButterJar":
+      legs("#95663d", "#725040", "#293546");
+      rect("#a97446", -23, -1, 9, 7);
+      rect("#c9935d", 14, -1, 9, 7);
+      shape("#593a3c", [[-14, -19], [14, -19], [18, -12], [18, 12], [14, 19], [-14, 19], [-18, 12], [-18, -12]]);
+      rect("#bb7946", -15, -14, 30, 28);
+      rect("#edb16d", -14, -12, 6, 25);
+      rect("#e3a364", -13, 14, 25, 3);
+      rect("#26384c", -17, -25, 34, 10);
+      rect("#5889a1", -16, -25, 32, 3);
+      for (let x = -14; x <= 14; x += 4) rect("#476477", x, -21, 2, 5);
+      rect("#f2d9a6", -16, -6, 32, 17);
+      rect("#8a4f3d", -16, -6, 32, 2);
+      rect("#8a4f3d", -16, 9, 32, 2);
+      shape("#c08451", [[-7, 5], [-8, 1], [-4, -3], [0, -3], [2, -1], [6, -1], [9, 3], [5, 7], [1, 6], [-2, 7]]);
+      rect("#e8b678", -4, -1, 3, 2);
+      rect("#523942", -5, -11, 3, 3);
+      rect("#523942", 6, -11, 3, 3);
+      break;
+    case "jellySandwich":
+      legs("#a56b46", "#7e4e41", "#603c44");
+      rect("#b88250", -25, 1, 9, 6);
+      rect("#ca9459", 16, 1, 10, 6);
+      shape("#713f44", [[-22, 4], [-15, -19], [-4, -23], [12, -22], [18, -15], [22, 4], [23, 13], [17, 18], [-18, 18], [-23, 13]]);
+      shape("#ce915b", [[-21, 7], [20, 7], [20, 13], [16, 16], [-18, 16], [-21, 12]]);
+      shape("#954371", [[-21, 5], [-12, 3], [19, 3], [22, 8], [20, 12], [14, 11], [11, 14], [7, 13], [5, 11], [-18, 12], [-22, 9]]);
+      rect("#d177a0", -16, 7, 32, 2);
+      shape("#dc9b62", [[-20, 5], [-13, -16], [-4, -20], [10, -19], [16, -14], [20, 4], [16, 8], [-16, 8]]);
+      shape("#f8d699", [[-16, 3], [-10, -14], [-4, -17], [9, -16], [13, -12], [16, 2], [13, 5], [-14, 5]]);
+      rect("#ffe2ad", -8, -13, 13, 2);
+      rect("#bd845c", -12, -4, 3, 2);
+      rect("#bd845c", 9, -4, 3, 2);
+      rect("#533745", -4, -7, 3, 4);
+      rect("#533745", 5, -7, 3, 4);
+      rect("#87475f", 0, -1, 5, 2);
       break;
     default:
       rect("#19262a", -12, -20, 24, 45);
@@ -1880,13 +2076,16 @@ function renderSkins() {
     card.querySelector(".skin-name").textContent = skin.name;
     const preview = card.querySelector(".skin-preview");
     const art = preview.getContext("2d");
-    art.translate(preview.width / 2, preview.height / 2);
-    art.scale(1.5, 1.5);
+    art.translate(preview.width / 2, preview.height / 2 + 2);
+    art.scale(1.42, 1.42);
     drawSkinSprite(art, id);
     const action = card.querySelector(".skin-action");
     action.addEventListener("click", () => {
       chooseSkin(id);
-      if (action.disabled) ui.shopSkinsTab.focus();
+      if (action.disabled) {
+        card.tabIndex = -1;
+        card.focus({ preventScroll: true });
+      }
     });
     skinRows.push({ id, skin, card, action });
     ui.skinList.append(card);
