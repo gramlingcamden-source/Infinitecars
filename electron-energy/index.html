@@ -139,7 +139,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: #101617bb;
 }
 .level-picker { width: min(100%, 1040px); }
-.season-picker { display: inline-flex; gap: 4px; margin-bottom: 16px; }
+.season-picker { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 16px; }
 .season-picker [aria-pressed="true"] { border-color: var(--mint); color: var(--mint); background: #2f4340; }
 .level-picker-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 22px; }
 .level-picker h1 { margin: 0; font-size: 44px; line-height: 1.05; }
@@ -192,6 +192,25 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .reunion-stops span { color: var(--muted); font-size: 14px; }
 .reunion-stops [aria-current="step"] { border-color: var(--amber); }
 .reunion-stops [data-complete="true"] { border-color: var(--mint); }
+.training-route { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 24px; }
+.training-route h2 { margin: 0 0 8px; font-size: 18px; }
+.training-drills, .medal-ledger { border-top: 1px solid var(--line); }
+.training-row {
+  min-height: 65px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.training-row div { display: grid; gap: 3px; border-left: 3px solid var(--power-color); padding-left: 8px; }
+.training-row span, .medal-ledger span { color: var(--muted); font-size: 14px; }
+.training-row button { padding-inline: 9px; }
+.training-row button:disabled { cursor: default; opacity: 0.6; }
+.medal-ledger { padding: 0; margin: 0; list-style: none; }
+.medal-ledger li { display: grid; gap: 3px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.medal-ledger [data-earned="true"] strong { color: var(--amber); }
 .campaign-act {
   --level-accent: #9ef2ce;
   min-width: 0;
@@ -379,6 +398,7 @@ kbd { color: var(--mint); font: 750 11px ui-monospace, monospace; }
   .campaign-acts { grid-template-columns: minmax(0, 1fr); gap: 14px; }
   .plant-grid { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .reunion-stops { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .training-route { grid-template-columns: minmax(0, 1fr); }
   .campaign-act h2 { margin-bottom: 6px; padding-bottom: 4px; }
   .level-grid { gap: 8px; }
   .level-option { grid-template-columns: 31% minmax(0, 1fr); grid-template-rows: auto; }
@@ -462,10 +482,11 @@ kbd { color: var(--mint); font: 750 11px ui-monospace, monospace; }
 
       <section id="levelHome" class="level-home" aria-labelledby="homeTitle">
         <div class="level-picker">
-          <div class="season-picker" role="group" aria-label="Campaign season">
+          <div class="season-picker" role="group" aria-label="Game mode">
             <button id="blackoutSeason" class="secondary" type="button" aria-controls="blackoutRoute" aria-pressed="true">Season 1</button>
             <button id="factorySeason" class="secondary" type="button" aria-controls="factoryRoute" aria-pressed="false">Season 2</button>
             <button id="reunionSeason" class="secondary" type="button" aria-controls="reunionRoute" aria-pressed="false">Season 3</button>
+            <button id="trainingMode" class="secondary" type="button" aria-controls="trainingRoute" aria-pressed="false">Training</button>
           </div>
           <div class="level-picker-header">
             <div>
@@ -502,6 +523,16 @@ kbd { color: var(--mint); font: 750 11px ui-monospace, monospace; }
           <div id="reunionRoute" class="reunion-route" hidden>
             <canvas id="reunionMap" width="960" height="228" aria-hidden="true"></canvas>
             <ol id="reunionStops" class="reunion-stops" aria-label="Neighborhoods"></ol>
+          </div>
+          <div id="trainingRoute" class="training-route" hidden>
+            <section aria-labelledby="academyHeading">
+              <h2 id="academyHeading">Power mastery</h2>
+              <div id="trainingDrills" class="training-drills"></div>
+            </section>
+            <section aria-labelledby="medalHeading">
+              <h2 id="medalHeading">Challenge medals</h2>
+              <ul id="medalLedger" class="medal-ledger"></ul>
+            </section>
           </div>
           <template id="levelOptionTemplate">
             <button class="level-option" type="button">
@@ -551,6 +582,7 @@ kbd { color: var(--mint); font: 750 11px ui-monospace, monospace; }
             <button data-action="jump" type="button">Jump</button>
             <button data-action="flight" type="button">Fly</button>
             <button data-action="attack" type="button">Cast</button>
+            <button data-action="shield" type="button">Shield</button>
           </div>
         </div>
       </div>
@@ -571,6 +603,7 @@ kbd { color: var(--mint); font: 750 11px ui-monospace, monospace; }
         <span><kbd>Space</kbd> Jump</span>
         <span><kbd>F</kbd> Cast</span>
         <span><kbd>Shift</kbd> Fly</span>
+        <span><kbd>Q</kbd> Shield</span>
       </div>
     </footer>
   </main>
@@ -685,7 +718,9 @@ const skinCatalog = {
   worm: { name: "Worm", cost: 60, color: "#f1a4b0" },
   snail: { name: "Snail", cost: 75, color: "#d2be83" },
   peanutButterJar: { name: "Peanut Butter Jar", cost: 95, color: "#e8ad69" },
-  jellySandwich: { name: "Jelly Sandwich", cost: 85, color: "#e3a0c8" }
+  jellySandwich: { name: "Jelly Sandwich", cost: 85, color: "#e3a0c8" },
+  wardenEcho: { name: "Warden Echo", medal: "warden", color: "#f1aa74" },
+  shelterKeeper: { name: "Shelter Keeper", medal: "escort", color: "#9de3bd" }
 };
 
 const portraitSkins = {
@@ -770,6 +805,28 @@ function drawSkinSprite(context, id, stride = 0, armored = false) {
   }
 
   switch (id) {
+    case "wardenEcho":
+      legs("#635f75", "#464254", "#302d3d");
+      shape("#302d3d", [[-21, -9], [-9, -16], [11, -16], [22, -8], [14, 11], [-14, 13]]);
+      shape("#7e7587", [[-18, -8], [-9, -12], [11, -12], [18, -8], [12, 8], [-11, 10]]);
+      shape("#4e485e", [[-11, -14], [-13, -24], [-6, -29], [11, -27], [16, -21], [12, -13]]);
+      rect("#ffa973", 1, -23, 13, 3);
+      shape("#ffa973", [[0, -8], [6, -3], [0, 5], [-5, -2]]);
+      rect("#ffe2a9", -1, -4, 3, 4);
+      break;
+    case "shelterKeeper":
+      legs("#446e68", "#304d51", "#253e43");
+      shape("#25484b", [[-18, 8], [-18, -6], [-9, -13], [10, -13], [18, -6], [19, 11], [10, 15], [-11, 15]]);
+      shape("#65a18b", [[-14, -5], [-9, -9], [9, -9], [14, -5], [13, 10], [-13, 10]]);
+      rect("#e7bd77", -14, -5, 6, 5);
+      rect("#e7bd77", 9, -5, 6, 5);
+      rect("#d6f4d5", -3, -2, 7, 2);
+      rect("#d6f4d5", -1, -4, 3, 6);
+      shape("#3e746a", [[-12, -12], [-12, -22], [-6, -28], [8, -29], [15, -23], [14, -13], [8, -9], [-6, -9]]);
+      rect("#263e47", -5, -21, 17, 7);
+      rect("#acecc4", -4, -20, 15, 3);
+      rect("#ffe1a2", 9, -25, 7, 4);
+      break;
     case "shark":
       legs("#649db8", "#45718c", "#243949");
       shape("#273b54", [[-20, -2], [-31, -13], [-33, 4], [-28, 14], [-20, 7], [-12, 9], [-6, 15],
@@ -1702,6 +1759,209 @@ function drawReunionMap(canvas, count) {
 }
 "use strict";
 
+const masteryCap = 15;
+const medalDefinitions = [
+  { id: "warden", name: "Untouchable", condition: "Defeat the Warden without taking a hit in the boss fight." },
+  ...roadDistricts.map((district, index) => ({
+    id: "escort-" + index, name: district.name, condition: "Reunite the family without either of you taking damage."
+  }))
+];
+
+function loadCombatProgress(saved) {
+  return {
+    mastery: Array.from({ length: 7 }, (_, i) => {
+      const rank = saved?.mastery?.[i];
+      return Number.isInteger(rank) ? Math.max(1, Math.min(masteryCap, rank)) : 1;
+    }),
+    medals: medalDefinitions.filter(({ id }) => Array.isArray(saved?.medals) && saved.medals.includes(id)).map(({ id }) => id)
+  };
+}
+
+function medalSkinUnlocked(skin) {
+  if (skin.medal === "warden") return progress.medals.includes("warden");
+  if (skin.medal === "escort") return roadDistricts.every((_, i) => progress.medals.includes("escort-" + i));
+  return true;
+}
+
+function awardMedal(id) {
+  if (progress.medals.includes(id)) return false;
+  progress.medals.push(id);
+  return true;
+}
+
+function effectivePower(index) {
+  const base = powers[index];
+  const ranks = progress.mastery[index] - 1;
+  return { ...base, damage: base.damage * (1 + ranks * 0.035),
+    cost: Math.round(base.cost * (1 - ranks * 0.017)), stun: base.stun ? Math.round(base.stun * (1 + ranks * 0.026)) : undefined };
+}
+
+function makeDrill(powerIndex, challenge) {
+  const rank = progress.mastery[powerIndex];
+  return {
+    powerIndex, challenge, rank, limit: (26 - Math.floor((rank - 1) / 2)) * 60,
+    layout: {
+      name: powers[powerIndex].name + " " + (challenge ? "Mastery Trial" : "Practice"),
+      width: 1450, training: true, sky: ["#233b42", "#789d95"], ridge: "#4b6b70", rock: "#354b53", trim: "#9be2bb",
+      platforms: [[420, 420, 198], [629, 343, 173], [817, 270, 184], [1024, 372, 222]],
+      bots: [[318, null], [711, 1], [1123, 3]], hp: challenge ? 2 + Math.floor((rank - 1) / 5) : 2,
+      speed: challenge ? 0.65 + 0.065 * rank : 0, damage: 0, chargePads: [0, 3]
+    }
+  };
+}
+
+function makeFieldObjects(layout) {
+  if (layout.reunion) return layout.districts.flatMap(({ start }, district) => [
+    { kind: "water", x: start + 674, span: 113, district },
+    { kind: "scrap", x: start + 1044, span: 38, district }
+  ]);
+  return layout.training ? [{ kind: "water", x: 508, span: 93 }, { kind: "scrap", x: 874, span: 38 }] : [];
+}
+
+function fieldObjectActive(object) {
+  return !roadRun || object.district === roadRun.index;
+}
+
+function interactWithTerrain(shot) {
+  for (const object of fieldObjects) {
+    if (!fieldObjectActive(object)) continue;
+    if (object.kind === "scrap" && object.coverX !== undefined &&
+        shot.hostile && Math.abs(shot.x - object.coverX) < 21 && shot.y >= floorY - 80) {
+      burst(shot.x, shot.y, "#adc5ba", 5);
+      return true;
+    }
+    if (shot.hostile || shot.x < object.x || shot.x > object.x + object.span || shot.y < floorY - 68 || shot.y > floorY) continue;
+    if (object.kind === "water" && !object.frozen && shot.power.name === "Freeze") {
+      object.frozen = true;
+      Composite.add(engine.world, Bodies.rectangle(object.x + object.span / 2, floorY - 32, object.span, 12, { isStatic: true }));
+      burst(shot.x, floorY - 37, "#b4efff", 18);
+      return true;
+    }
+    if (object.kind === "scrap" && object.coverX === undefined && shot.power.name === "Magnet") {
+      object.coverX = object.x + (shot.vx < 0 ? object.span + 53 : -53);
+      burst(object.coverX, floorY - 59, "#d7a9ff", 15);
+      return true;
+    }
+  }
+  return false;
+}
+
+function inLiveWater(x) {
+  return !drill && fieldObjects.some(object => fieldObjectActive(object) && object.kind === "water" && !object.frozen &&
+    x > object.x + 3 && x < object.x + object.span - 3);
+}
+
+function escortFooting(x) {
+  return fieldObjects.some(object => object.frozen && x >= object.x && x <= object.x + object.span) ? floorY - 38 : floorY;
+}
+
+function updateShield() {
+  const held = input("shield");
+  if (!held) player.shieldLocked = false;
+  else if (player.energy <= 0) player.shieldLocked = true;
+  player.shielded = held && !player.shieldLocked && player.energy > 0;
+  if (!player.shielded) return;
+  if (!drill || drill.challenge) spendEnergy(0.62);
+  if (player.energy <= 0) {
+    player.shielded = false;
+    player.shieldLocked = true;
+  }
+}
+
+function escortShielded() {
+  const escort = roadRun?.follower;
+  if (!player.shielded || !escort || escort.waiting || escort.hp <= 0) return false;
+  return Math.hypot(player.body.position.x - escort.x, player.body.position.y - (escortFooting(escort.x) - 21)) < 87;
+}
+
+function shieldIntercepts(shot) {
+  if (!player.shielded) return false;
+  const { x, y } = player.body.position;
+  const escort = roadRun?.follower;
+  const nearPlayer = Math.hypot(shot.x - x, shot.y - y) < 48;
+  const nearEscort = escortShielded() && Math.hypot(shot.x - escort.x, shot.y - (escortFooting(escort.x) - 21)) < 33;
+  if (!nearPlayer && !nearEscort) return false;
+  burst(shot.x, shot.y, "#98e7fa", 7);
+  return true;
+}
+
+function roadBotRole(district, localIndex) {
+  if (localIndex === 1) return "scout";
+  if (localIndex === 3) return "shield";
+  if (district > 0 && localIndex === 4) return "repair";
+  return null;
+}
+
+function updateBotRole(bot, x) {
+  if (bot.stun) return;
+  if (bot.role === "scout" && !bot.alerted && Math.abs(player.body.position.x - x) < 295) {
+    bot.alerted = true;
+    for (const guard of bots) {
+      if (guard !== bot && guard.hp > 0 && patrolActive(guard) && Math.abs(guard.body.position.x - x) < 325) {
+        guard.cooldown = Math.min(guard.cooldown, 13);
+      }
+    }
+    burst(x, bot.body.position.y - 28, "#ffd176", 18);
+  }
+  if (bot.role !== "repair" || bot.repairUsed || frame % 40 !== 0) return;
+  const neighbor = bots.find(other => other !== bot && other.district === bot.district && other.hp <= 0 &&
+    Math.hypot(other.body.position.x - x, other.body.position.y - bot.body.position.y) < 255);
+  if (!neighbor) return;
+  bot.repairUsed = true;
+  neighbor.hp = Math.min(2, patrolProfile(neighbor).hp);
+  neighbor.cooldown = 44;
+  Composite.add(engine.world, neighbor.body);
+  burst(neighbor.body.position.x, neighbor.body.position.y, "#9ef0b0", 16);
+}
+
+function botShieldBlocks(bot, shot) {
+  return bot.role === "shield" && !bot.stun && shot.power.name !== "Freeze" &&
+    (Number.isFinite(shot.vx) ? shot.vx * bot.direction < 0 : false);
+}
+
+function drawFieldObjects() {
+  for (const object of fieldObjects) {
+    if (object.x + object.span < view.x - 100 || object.x > view.x + view.width + 100) continue;
+    const { x, span } = object;
+    if (object.kind === "water") {
+      box("#315773", x, floorY - 9, span, 15);
+      for (let i = 6; i < span - 12; i += 18) box("#86c7db", x + i, floorY - 6 + (i + frame) % 4, 10, 2);
+      if (object.frozen) {
+        box("#70aed2", x, floorY - 38, span, 12);
+        box("#d1f4ff", x, floorY - 38, span, 3);
+        for (let i = 9; i < span - 6; i += 17) box("#a9dcf2", x + i, floorY - 32, 8, 2);
+      }
+    } else if (object.coverX === undefined) {
+      polygon("#64727a", [[x, floorY], [x + 4, floorY - 25], [x + 22, floorY - 31],
+        [x + span, floorY - 14], [x + span, floorY]]);
+      box("#c795ea", x + 11, floorY - 17, 12, 3);
+    } else {
+      box("#4a575e", object.coverX - 20, floorY - 80, 40, 80);
+      box("#9eb4ac", object.coverX - 19, floorY - 80, 38, 5);
+      for (let y = floorY - 65; y < floorY; y += 14) box("#26363f", object.coverX - 17, y, 34, 4);
+    }
+  }
+}
+
+function drawShield() {
+  if (!player.shielded) return;
+  const ring = (x, y, radius) => {
+    ctx.beginPath();
+    ctx.ellipse(x, y, radius, radius, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#8edff61a";
+    ctx.fill();
+    ctx.strokeStyle = "#a3efff";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  };
+  ring(player.body.position.x, player.body.position.y, 47);
+  if (escortShielded()) {
+    const { x } = roadRun.follower;
+    ring(x, escortFooting(x) - 21, 32);
+  }
+}
+"use strict";
+
 const { Engine, Bodies, Body, Composite } = Matter;
 const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
@@ -1715,7 +1975,8 @@ const ui = Object.fromEntries([
   "bossHud", "bossHealth", "bossState", "homeTitle", "seasonTag", "seasonBrief",
   "blackoutSeason", "factorySeason", "blackoutRoute", "factoryRoute", "plantGrid", "plantShutdown",
   "reunionSeason", "reunionRoute", "reunionMap", "reunionStops", "roadHud", "roadCount",
-  "escortVitals", "escortHealthLabel", "escortHealth", "escortHealthAmount"
+  "escortVitals", "escortHealthLabel", "escortHealth", "escortHealthAmount",
+  "trainingMode", "trainingRoute", "trainingDrills", "medalLedger"
 ].map((id) => [id, document.getElementById(id)]));
 const levelButtons = [];
 const playPrologue = createPrologue(ui.prologue);
@@ -1856,7 +2117,7 @@ const blackoutStages = acts.flat();
 const blackoutCount = blackoutStages.length;
 const reunionIndex = blackoutCount + plantStages.length;
 const stages = [...blackoutStages, ...plantStages, reunionStage];
-const seasonNames = ["The Blackout", "The Last Factories", "The Way Home"];
+const seasonNames = ["The Blackout", "The Last Factories", "The Way Home", "Training"];
 const campaignVersion = 4;
 const debriefs = [
   "Dispatch: The district is clear. Get to the rooftops before the next patrol.",
@@ -1885,6 +2146,7 @@ const progressKey = "electron-energy-progress-v1";
 const progress = loadProgress();
 const shopRows = [];
 const skinRows = [];
+const trainingRows = [];
 
 const powers = [
   { name: "Freeze", color: "#b4efff", speed: 15, cost: 9, life: 48, damage: 1, stun: 115 },
@@ -1898,7 +2160,7 @@ const powers = [
 
 const keyActions = {
   KeyA: "left", ArrowLeft: "left", KeyD: "right", ArrowRight: "right",
-  Space: "jump", KeyW: "jump", ArrowUp: "jump", KeyF: "attack", ShiftLeft: "flight", ShiftRight: "flight"
+  Space: "jump", KeyW: "jump", ArrowUp: "jump", KeyF: "attack", ShiftLeft: "flight", ShiftRight: "flight", KeyQ: "shield"
 };
 const heldActions = new Map();
 const view = { scale: 1, width: 0, height: 0, x: 0, y: 0, dpr: 1 };
@@ -1913,6 +2175,8 @@ let sparks;
 let stageIndex = 0;
 let menuSeason = seasonFor(progress.chaptersCleared);
 let roadRun = null;
+let drill = null;
+let fieldObjects = [];
 let phase = "home";
 let selectedPower = 1;
 let nextJump = false;
@@ -1921,7 +2185,7 @@ let lastTime = 0;
 let accumulator = 0;
 
 function stage() {
-  return stages[stageIndex];
+  return drill?.layout ?? stages[stageIndex];
 }
 
 function seasonFor(index) {
@@ -1929,7 +2193,7 @@ function seasonFor(index) {
 }
 
 function seasonTag(season) {
-  return "Season " + (season + 1) + ": " + seasonNames[season];
+  return season === 3 ? "Training bay" : "Season " + (season + 1) + ": " + seasonNames[season];
 }
 
 function loadProgress() {
@@ -1949,6 +2213,7 @@ function loadProgress() {
   const chaptersCleared = saved?.campaignPrologueSeen === true && Number.isInteger(saved?.chaptersCleared)
     ? Math.max(0, Math.min(chapterCap, saved.chaptersCleared)) : 0;
   return {
+    ...loadCombatProgress(saved),
     credits: Number.isSafeInteger(credits) && credits >= 0 ? credits : 0,
     upgrades: Object.fromEntries(Object.keys(upgradeOptions).map((id) => {
       const level = saved?.upgrades?.[id];
@@ -2046,18 +2311,23 @@ function actor(x, y, width, height) {
   return body;
 }
 
-function launchStage(index, atWarden = false, roadCheckpoint = null) {
-  if (!progress.campaignPrologueSeen || !stages[index] || index > progress.chaptersCleared) return;
-  if (index === reunionIndex && !progress.reunionBriefingSeen) return;
-  if (index >= blackoutCount && index < reunionIndex && !progress.factoryBriefingSeen) return;
+function launchStage(index, atWarden = false, roadCheckpoint = null, lesson = null) {
+  if (!lesson) {
+    if (!progress.campaignPrologueSeen || !stages[index] || index > progress.chaptersCleared) return;
+    if (index === reunionIndex && !progress.reunionBriefingSeen) return;
+    if (index >= blackoutCount && index < reunionIndex && !progress.factoryBriefingSeen) return;
+  }
+  drill = lesson ? makeDrill(lesson.powerIndex, lesson.challenge) : null;
   stageIndex = index;
   const layout = stage();
-  menuSeason = seasonFor(index);
+  menuSeason = drill ? 3 : seasonFor(index);
   ui.seasonTag.textContent = seasonTag(menuSeason);
   roadRun = layout.reunion ? {
     index: roadCheckpoint ?? (progress.reunionStops < roadDistricts.length ? progress.reunionStops : 0),
-    follower: null
+    follower: null,
+    clean: true
   } : null;
+  fieldObjects = makeFieldObjects(layout);
   atWarden = atWarden && layout.finale;
   engine = Engine.create({ gravity: { x: 0, y: 1.05 } });
   const ground = Bodies.rectangle(layout.width / 2, floorY + 35, layout.width, 70, { isStatic: true });
@@ -2072,14 +2342,19 @@ function launchStage(index, atWarden = false, roadCheckpoint = null) {
   player = {
     body: actor(spawn, floorY - 23, 28, 44),
     facing: 1, hp: maxHealth, maxHealth, energy: maxEnergy, maxEnergy,
-    cooldown: 0, invulnerable: 0, coyote: 0, flying: false, flightLocked: false, rechargeWait: 0
+    cooldown: 0, invulnerable: 0, coyote: 0, flying: false, flightLocked: false, rechargeWait: 0,
+    shielded: false, shieldLocked: false
   };
+  const patrolPositions = [];
   bots = layout.bots.map(([x, ledge, district], index) => {
     const [left, y, width] = layout.platforms[ledge] ?? [x - 80, floorY, 160];
+    const slot = patrolPositions[district] ?? 0;
+    patrolPositions[district] = slot + 1;
     return { body: actor(x, y - 21, 32, 38), left: left + 25, right: left + width - 25,
       direction: index % 2 ? -1 : 1, district,
       hp: atWarden || (roadRun && district < roadRun.index) ? 0 : layout.districts?.[district].hp ?? layout.hp,
-      cooldown: roadRun ? 40 + index % 6 * 19 : 50 + index * 21, stun: 0 };
+      cooldown: roadRun ? 40 + index % 6 * 19 : 50 + index * 21, stun: 0,
+      role: roadRun ? roadBotRole(district, slot) : null };
   });
   boss = layout.finale ? createWarden(layout.width - 295, atWarden) : null;
   Composite.add(engine.world, [ground, ceiling, ...ledges, barrier, player.body,
@@ -2091,9 +2366,11 @@ function launchStage(index, atWarden = false, roadCheckpoint = null) {
   frame = 0;
   view.x = atWarden || roadRun ? Math.max(0, Math.min(layout.width - view.width, spawn - view.width * 0.36)) : 0;
   resetInput();
+  selectPower(drill ? drill.powerIndex : selectedPower);
   if (roadRun) syncDistrictTitle();
   else {
-    ui.stageNumber.textContent = layout.plant ? "PLANT " + (index - blackoutCount + 1) + " / " + plantStages.length
+    ui.stageNumber.textContent = drill ? (drill.challenge ? "MASTERY TRIAL" : "FREE PRACTICE")
+      : layout.plant ? "PLANT " + (index - blackoutCount + 1) + " / " + plantStages.length
       : "CHAPTER " + String(index + 1).padStart(2, "0");
     ui.stageName.textContent = layout.name;
   }
@@ -2115,12 +2392,14 @@ function showPlayfield(playing) {
 
 function showHome() {
   phase = "home";
+  drill = null;
+  selectPower(selectedPower);
   resetInput();
   view.x = 0;
   showPlayfield(false);
   syncCampaign();
   draw();
-  (ui.continueCampaign.disabled ? [ui.blackoutSeason, ui.factorySeason, ui.reunionSeason][menuSeason]
+  (ui.continueCampaign.disabled || menuSeason === 3 ? [ui.blackoutSeason, ui.factorySeason, ui.reunionSeason, ui.trainingMode][menuSeason]
     : ui.continueCampaign).focus({ preventScroll: true });
 }
 
@@ -2139,6 +2418,7 @@ function completeStage() {
   const firstSeasonWin = stage().finale && progress.chaptersCleared === blackoutCount - 1;
   const firstFactoryWin = stageIndex === reunionIndex - 1 && progress.chaptersCleared === stageIndex;
   progress.chaptersCleared = Math.max(progress.chaptersCleared, stageIndex + 1);
+  const medal = stage().finale && boss && !boss.tookHit && awardMedal("warden") ? " Untouchable medal earned." : "";
   awardCredits(bonus);
   if (stage().plant) {
     if (stageIndex === reunionIndex - 1) {
@@ -2150,7 +2430,7 @@ function completeStage() {
   } else if (stage().finale) {
     if (firstSeasonWin) menuSeason = 1;
     showResult("Power restored",
-      "Dispatch: The Warden is down, but seven factories are still building bots. +" + formatCredits(bonus) + ".",
+      "Dispatch: The Warden is down, but seven factories are still building bots. +" + formatCredits(bonus) + "." + medal,
       "Start Season 2");
   } else {
     showResult("Chapter cleared", debriefs[stageIndex] + " +" + formatCredits(bonus) + ".", "Next chapter");
@@ -2178,13 +2458,22 @@ function patrolProfile(bot) {
   return roadRun ? reunionStage.districts[bot.district] : stage();
 }
 
+function escortSafeSpots(district) {
+  return [district.pickup, district.start + 874];
+}
+
 function roadAction() {
   if (!roadRun || phase !== "playing" || ui.upgradeShop.open || player.body.bounds.max.y < floorY - 18) return null;
   const district = roadDistrict();
   const x = player.body.position.x;
-  if (!roadRun.follower) return Math.abs(x - district.pickup) < 63 ? "Escort " + district.missing : null;
-  if (roadRun.follower.hp > 0 && Math.abs(x - district.shelter) < 70 && Math.abs(roadRun.follower.x - district.shelter) < 100 &&
-      !bots.some(bot => patrolActive(bot) && bot.hp > 0)) return "Reunite family";
+  const escort = roadRun.follower;
+  if (!escort) return Math.abs(x - district.pickup) < 63 ? { label: "Escort " + district.missing, kind: "join" } : null;
+  if (escort.hp <= 0) return null;
+  if (escort.waiting) return Math.abs(escort.x - x) < 68 ? { label: "Follow me", kind: "follow" } : null;
+  if (Math.abs(x - district.shelter) < 70 && Math.abs(escort.x - district.shelter) < 100 &&
+      !bots.some(bot => patrolActive(bot) && bot.hp > 0)) return { label: "Reunite family", kind: "reunite" };
+  const shelter = escortSafeSpots(district).find(site => Math.abs(site - x) < 52 && Math.abs(site - escort.x) < 66);
+  if (shelter !== undefined) return { label: "Wait here", kind: "wait", shelter };
   return null;
 }
 
@@ -2192,6 +2481,7 @@ function stepEscort() {
   const follower = roadRun?.follower;
   if (!follower || follower.hp <= 0) return;
   follower.invulnerable = Math.max(0, follower.invulnerable - 1);
+  if (follower.waiting) return;
   const x = player.body.position.x;
   const gap = x - follower.x;
   const speed = Math.max(0, Math.min(8, Math.abs(gap) - 38));
@@ -2204,11 +2494,17 @@ function useFieldAction() {
     shutDownPlant();
     return;
   }
-  if (!roadAction()) return;
+  const action = roadAction();
+  if (!action) return;
   const district = roadDistrict();
-  if (!roadRun.follower) {
+  if (action.kind === "join") {
     roadRun.follower = { x: district.pickup, stride: 0, hp: escortMaxHealth, invulnerable: 0 };
+  } else if (action.kind === "wait") {
+    Object.assign(roadRun.follower, { x: action.shelter, stride: 0, waiting: true });
+  } else if (action.kind === "follow") {
+    roadRun.follower.waiting = false;
   } else {
+    const medal = roadRun.clean && awardMedal("escort-" + roadRun.index);
     roadRun.follower = null;
     const count = ++roadRun.index;
     const finished = count === roadDistricts.length;
@@ -2222,7 +2518,8 @@ function useFieldAction() {
     barrier = null;
     if (finished) {
       phase = "cleared";
-      showResult("City reunited", "Dispatch: All five families are together. The last bots are down. +" + formatCredits(credits) + ".",
+      showResult("City reunited", "Dispatch: All five families are together. The last bots are down. +" + formatCredits(credits) + "." +
+        (medal ? " Beacon Square medal earned." : ""),
         "Back to campaign");
     } else {
       barrier = makeBarrier(roadDistrict().end - 27);
@@ -2230,6 +2527,7 @@ function useFieldAction() {
       player.hp = Math.min(player.maxHealth, player.hp + 35);
       player.energy = Math.min(player.maxEnergy, player.energy + 30);
       shots.length = 0;
+      roadRun.clean = true;
       syncDistrictTitle();
     }
   }
@@ -2277,7 +2575,8 @@ function movementAxis() {
 function standing(body) {
   if (body.velocity.y < -0.1) return false;
   if (Math.abs(body.bounds.max.y - floorY) < 3) return true;
-  return stage().platforms.some((deck) => deckContact(body, deck));
+  return stage().platforms.some((deck) => deckContact(body, deck)) ||
+    fieldObjects.some(object => object.frozen && deckContact(body, [object.x, floorY - 38, object.span]));
 }
 
 function spendEnergy(amount) {
@@ -2291,7 +2590,7 @@ function spendEnergy(amount) {
 
 function cast(target) {
   if (phase !== "playing" || player.cooldown > 0) return;
-  const power = powers[selectedPower];
+  const power = effectivePower(selectedPower);
   if (player.energy < power.cost) return;
   const { x, y } = player.body.position;
   const dx = target ? target.x - x : player.facing;
@@ -2300,7 +2599,7 @@ function cast(target) {
   const vx = length ? dx / length : player.facing;
   const vy = length ? dy / length : 0;
   if (Math.abs(vx) > 0.12) player.facing = Math.sign(vx);
-  spendEnergy(power.cost);
+  if (!drill || drill.challenge) spendEnergy(power.cost);
   player.cooldown = 15;
   shots.push({ x, y, vx: vx * power.speed, vy: vy * power.speed,
     power, life: power.life, hit: new Set() });
@@ -2328,7 +2627,7 @@ function fireBot(bot) {
   let target = aimAt(player.body.position);
   const escort = roadRun?.follower;
   if (escort?.hp > 0) {
-    const aim = aimAt({ x: escort.x, y: floorY - escortHeight / 2 });
+    const aim = !escort.waiting && aimAt({ x: escort.x, y: escortFooting(escort.x) - escortHeight / 2 });
     if (aim && (!target || aim.distance < target.distance)) target = aim;
   }
   if (!target) return;
@@ -2349,14 +2648,17 @@ function damagePlayer(amount) {
   if (player.invulnerable > 0 || amount === 0) return;
   const damage = Math.max(1, Math.round(amount * (100 - upgradeValue("armor")) / 100));
   player.hp = Math.max(0, player.hp - damage);
+  if (roadRun) roadRun.clean = false;
+  if (boss?.active && boss.hp > 0) boss.tookHit = true;
   player.invulnerable = 42;
   burst(player.body.position.x, player.body.position.y, "#ff9d77", 11);
 }
 
 function damageEscort(amount) {
   const escort = roadRun?.follower;
-  if (!escort || escort.hp <= 0 || escort.invulnerable > 0 || !amount) return;
+  if (!escort || escort.waiting || escort.hp <= 0 || escort.invulnerable > 0 || !amount) return;
   escort.hp = Math.max(0, escort.hp - amount);
+  roadRun.clean = false;
   escort.invulnerable = 36;
   burst(escort.x, floorY - escortHeight / 2, "#ffd58b", 9);
 }
@@ -2375,17 +2677,19 @@ function moveShots() {
 }
 
 function shotCollides(shot) {
-  if (shot.x < 0 || shot.x > stage().width || shot.y > floorY ||
-      stage().platforms.some(([x, y, width]) =>
-        shot.x >= x && shot.x <= x + width && shot.y >= y && shot.y <= y + 24)) return true;
+  if (shot.x < 0 || shot.x > stage().width || shot.y > floorY) return true;
+  if (interactWithTerrain(shot) || stage().platforms.some(([x, y, width]) =>
+      shot.x >= x && shot.x <= x + width && shot.y >= y && shot.y <= y + 24)) return true;
   if (shot.hostile) {
+    if (shieldIntercepts(shot)) return true;
     const damage = shot.damage ?? stage().damage;
     if (hit(player.body, shot, 4)) {
       damagePlayer(damage);
       return true;
     }
     const escort = roadRun?.follower;
-    if (escort?.hp > 0 && Math.abs(escort.x - shot.x) <= 15 && shot.y >= floorY - escortHeight - 3) {
+    const feet = escort ? escortFooting(escort.x) : floorY;
+    if (escort?.hp > 0 && !escort.waiting && Math.abs(escort.x - shot.x) <= 15 && shot.y >= feet - escortHeight - 3 && shot.y <= feet + 3) {
       damageEscort(damage);
       return true;
     }
@@ -2394,6 +2698,10 @@ function shotCollides(shot) {
   for (const bot of bots) {
     if (bot.hp <= 0 || !patrolActive(bot) || shot.hit.has(bot) || !hit(bot.body, shot, 6)) continue;
     shot.hit.add(bot);
+    if (botShieldBlocks(bot, shot)) {
+      burst(shot.x, shot.y, "#a6e3ed", 8);
+      return true;
+    }
     bot.hp -= shot.power.damage;
     bot.stun = shot.power.stun || 16;
     burst(shot.x, shot.y, shot.power.color, bot.hp <= 0 ? 18 : 7);
@@ -2417,7 +2725,7 @@ function shotCollides(shot) {
 }
 
 function createWarden(x, active) {
-  return { x, hp: wardenHealth, active, exposed: false, opening: 0, tier: 0, turn: 0,
+  return { x, hp: wardenHealth, active, exposed: false, opening: 0, tier: 0, turn: 0, tookHit: false,
     attack: null, chain: null,
     body: Bodies.rectangle(x, floorY - 56, 106, 112, { isStatic: true }) };
 }
@@ -2519,7 +2827,8 @@ function simulate() {
   if (!flightHeld) player.flightLocked = false;
   else if (!player.flying && player.energy < flightStartEnergy) player.flightLocked = true;
   player.flying = flightHeld && !player.flightLocked;
-  if (player.flying) spendEnergy(flightDrain);
+  if (player.flying && (!drill || drill.challenge)) spendEnergy(flightDrain);
+  updateShield();
   if (jump && player.coyote > 0) {
     vy = -9.7;
     player.coyote = 0;
@@ -2546,12 +2855,13 @@ function simulate() {
     if (x >= bot.right) bot.direction = -1;
     bot.cooldown--;
     bot.stun = Math.max(0, bot.stun - 1);
+    updateBotRole(bot, x);
     Body.setVelocity(bot.body, { x: bot.stun ? 0 : bot.direction * profile.speed, y: bot.body.velocity.y });
     if (profile.damage && !bot.stun) {
       fireBot(bot);
       if (Math.abs(body.position.x - x) < 31 && Math.abs(body.position.y - y) < 35) damagePlayer(profile.damage);
       const escort = roadRun?.follower;
-      if (escort?.hp > 0 && Math.abs(escort.x - x) < 27 && Math.abs(floorY - 25 - y) < 31) damageEscort(profile.damage);
+      if (escort?.hp > 0 && Math.abs(escort.x - x) < 27 && Math.abs(escortFooting(escort.x) - 25 - y) < 31) damageEscort(profile.damage);
     }
   }
   stepWarden();
@@ -2559,9 +2869,11 @@ function simulate() {
   stepEscort();
   if (body.bounds.max.y > floorY - 20 && stage().floorArcs?.some(([x, width, offset]) =>
     body.bounds.max.x > x && body.bounds.min.x < x + width && floorArcPhase(offset) === "live")) damagePlayer(16);
+  if (body.bounds.max.y > floorY - 14 && inLiveWater(body.position.x)) damagePlayer(9);
   const escort = roadRun?.follower;
-  if (escort?.hp > 0 && stage().floorArcs?.some(([x, width, offset]) =>
+  if (escort?.hp > 0 && escortFooting(escort.x) === floorY && stage().floorArcs?.some(([x, width, offset]) =>
     escort.x + 9 > x && escort.x - 9 < x + width && floorArcPhase(offset) === "live")) damageEscort(14);
+  if (escort?.hp > 0 && inLiveWater(escort.x)) damageEscort(10);
   moveShots();
   for (const spark of sparks) {
     spark.x += spark.vx;
@@ -2575,7 +2887,21 @@ function simulate() {
     barrier = null;
     burst(finishX(), floorY - 75, "#a7ffdc", 25);
   }
-  if (escort?.hp === 0) {
+  if (drill) {
+    if (bots.every(bot => bot.hp <= 0)) {
+      phase = "cleared";
+      if (drill.challenge) {
+        progress.mastery[drill.powerIndex] = Math.min(masteryCap, drill.rank + 1);
+        saveProgress();
+      }
+      showResult(drill.challenge ? "Trial complete" : "Practice complete",
+        drill.challenge ? powers[drill.powerIndex].name + " mastery advanced to level " + progress.mastery[drill.powerIndex] + "."
+          : "All practice targets down.", "Back to training");
+    } else if (drill.challenge && frame >= drill.limit) {
+      phase = "failed";
+      showResult("Time expired", "The trial resets with all targets intact.", "Retry trial");
+    }
+  } else if (escort?.hp === 0) {
     phase = "failed";
     showResult("Escort failed", roadDistrict().missing + " didn't reach the shelter. Restart from this district's checkpoint.",
       "Retry district");
@@ -2618,13 +2944,15 @@ function syncHud() {
     syncMeter(ui.escortHealth, ui.escortHealthAmount, escort.hp, escortMaxHealth);
     ui.escortVitals.dataset.critical = String(escort.hp <= escortMaxHealth / 3);
   }
-  const action = roadRun ? roadAction() : canShutDownPlant() ? "Shut down plant" : null;
+  const action = roadRun ? roadAction()?.label : canShutDownPlant() ? "Shut down plant" : null;
   const hideShutdown = !action;
   if (ui.plantShutdown.hidden !== hideShutdown) ui.plantShutdown.hidden = hideShutdown;
   if (action) setText(ui.plantShutdown, action);
   const district = roadDistrict();
-  const status = roadRun ? (phase === "cleared" ? "Families reunited" : escort?.hp === 0 ? "Escort lost"
-    : !escort ? "Find " + district.missing
+  const status = drill ? (phase === "cleared" ? "Targets cleared" : drill.challenge
+    ? Math.ceil(Math.max(0, drill.limit - frame) / 60) + "s remaining" : "Free practice")
+    : roadRun ? (phase === "cleared" ? "Families reunited" : escort?.hp === 0 ? "Escort lost"
+    : !escort ? "Find " + district.missing : escort.waiting ? district.missing + " is waiting in shelter"
       : defeated < total ? "Protect " + district.missing + " and clear the bots" : "Reach " + district.waiting + "'s shelter")
     : stage().plant ? (phase === "cleared" ? "Plant offline" : barrier ? "Clear the plant guards"
     : hideShutdown ? "Reach the shutdown console" : "Console unlocked")
@@ -2659,13 +2987,17 @@ function updateShop() {
     const owned = progress.ownedSkins.includes(id);
     const equipped = progress.skin === id;
     card.classList.toggle("equipped", equipped);
-    action.disabled = equipped || (!owned && progress.credits < skin.cost);
+    const permitted = skin.medal ? medalSkinUnlocked(skin) : progress.credits >= skin.cost;
+    action.disabled = equipped || (!owned && !permitted);
     if (equipped) {
       action.textContent = "Equipped";
       action.setAttribute("aria-label", skin.name + " equipped");
     } else if (owned) {
       action.textContent = "Equip";
       action.setAttribute("aria-label", "Equip " + skin.name);
+    } else if (skin.medal) {
+      action.textContent = permitted ? "Unlock" : skin.medal === "warden" ? "Warden medal" : "5 escort medals";
+      action.setAttribute("aria-label", permitted ? "Unlock " + skin.name : skin.name + " requires " + action.textContent);
     } else {
       action.textContent = formatCredits(skin.cost);
       action.setAttribute("aria-label", "Buy " + skin.name + " for " + formatCredits(skin.cost));
@@ -2701,9 +3033,10 @@ function buyUpgrade(id) {
 function chooseSkin(id) {
   const skin = skinCatalog[id];
   const owned = progress.ownedSkins.includes(id);
-  if (progress.skin === id || (!owned && progress.credits < skin.cost)) return;
+  const permitted = skin.medal ? medalSkinUnlocked(skin) : progress.credits >= skin.cost;
+  if (progress.skin === id || (!owned && !permitted)) return;
   if (!owned) {
-    progress.credits -= skin.cost;
+    progress.credits -= skin.cost ?? 0;
     progress.ownedSkins.push(id);
   }
   progress.skin = id;
@@ -2762,9 +3095,11 @@ function renderShop() {
 }
 
 function selectPower(index) {
+  if (drill && index !== drill.powerIndex) return;
   selectedPower = index;
   for (const [i, button] of [...ui.powerGrid.children].entries()) {
     button.setAttribute("aria-pressed", String(i === index));
+    button.disabled = Boolean(drill && i !== drill.powerIndex);
   }
 }
 
@@ -3002,7 +3337,9 @@ function drawBot(bot) {
   ctx.translate(x, y);
   ctx.scale(bot.direction, 1);
   box("#20252d", -17, -15, 34, 29);
-  box(bot.stun ? "#71afd0" : "#9d514b", -15, -13, 30, 21);
+  const tint = bot.role === "repair" ? "#5f896e" : bot.role === "scout" ? "#ad834a"
+    : bot.role === "shield" ? "#536e9a" : "#9d514b";
+  box(bot.stun ? "#71afd0" : tint, -15, -13, 30, 21);
   box("#d6b2a1", -12, -16, 25, 10);
   box("#291f26", -9, -12, 22, 7);
   box("#ff9a63", 3, -10, 10, 3);
@@ -3010,6 +3347,16 @@ function drawBot(bot) {
   box("#5b4045", 4, 9, 9, 10 - step);
   box("#24272e", -15, 15 + step, 13, 4);
   box("#24272e", 2, 15 - step, 13, 4);
+  if (bot.role === "shield" && !bot.stun) {
+    box("#82cddd70", 17, -18, 8, 33);
+    box("#b5edf4", 23, -18, 2, 33);
+  } else if (bot.role === "scout") {
+    box("#4f4446", -9, -25, 4, 10);
+    box(bot.alerted ? "#ff9d69" : "#efd292", -11, -25, 8, 4);
+  } else if (bot.role === "repair" && !bot.repairUsed) {
+    box("#aae8a8", -13, -28, 11, 4);
+    box("#aae8a8", -9, -32, 4, 12);
+  }
   const maxHp = patrolProfile(bot).hp;
   if (maxHp > 1) {
     box("#30272c", -15, -26, 30, 3);
@@ -3113,13 +3460,13 @@ function drawFloorArcs(arcs) {
 
 function drawReunionWorld() {
   const visible = x => x >= view.x - 110 && x <= view.x + view.width + 110;
-  const label = (name, x) => {
+  const label = (name, x, feet = floorY) => {
     ctx.font = "bold 12px monospace";
     ctx.textAlign = "center";
     const width = ctx.measureText(name).width + 12;
-    box("#152126", x - width / 2, floorY - 72, width, 18);
+    box("#152126", x - width / 2, feet - 72, width, 18);
     ctx.fillStyle = "#e7f5e8";
-    ctx.fillText(name, x, floorY - 59);
+    ctx.fillText(name, x, feet - 59);
     ctx.textAlign = "left";
   };
   reunionStage.districts.forEach((district, index) => {
@@ -3131,15 +3478,22 @@ function drawReunionWorld() {
       else if (index === roadRun.index) label(district.waiting, district.shelter + 22);
     }
     if (index !== roadRun.index) return;
+    for (const site of escortSafeSpots(district)) {
+      if (!visible(site)) continue;
+      drawRoadShelter(ctx, site, floorY, 0.57, true);
+      box("#2c443b", site - 14, floorY - 62, 28, 9);
+      box("#b1fbd2", site - 11, floorY - 60, 22, 4);
+    }
     const escort = roadRun.follower;
     const x = escort?.x ?? district.pickup;
     if (visible(x)) {
+      const feet = escortFooting(x);
       ctx.save();
       if (escort?.hp === 0) ctx.globalAlpha = 0.45;
       else if (escort?.invulnerable % 10 > 5) ctx.globalAlpha = 0.55;
-      drawRoadResident(ctx, x, floorY, district.coats[0], escort?.stride ?? 0, 0.82);
+      drawRoadResident(ctx, x, feet, district.coats[0], escort?.stride ?? 0, 0.82);
       ctx.restore();
-      label(district.missing, x);
+      label(district.missing + (escort?.waiting ? " (safe)" : ""), x, feet);
     }
     if (barrier && visible(district.end - 27)) {
       const gate = district.end - 27;
@@ -3156,7 +3510,7 @@ function draw() {
   const groundViewY = floorY - view.height * 0.83;
   if (phase === "home") {
     view.y = groundViewY;
-    const layout = [blackoutStages[0], plantStages[0], roadDistricts[0]][menuSeason];
+    const layout = [blackoutStages[0], plantStages[0], roadDistricts[0]][menuSeason] ?? blackoutStages[0];
     background(layout);
     box(layout.rock, 0, floorY - view.y, view.width, view.height);
     return;
@@ -3186,11 +3540,13 @@ function draw() {
     }
   }
   if (stage().floorArcs && !(stage().plant && phase === "cleared")) drawFloorArcs(stage().floorArcs);
+  drawFieldObjects();
   if (roadRun) drawReunionWorld();
   for (const bot of bots) if (bot.hp > 0 && patrolActive(bot)) drawBot(bot);
   if (boss) drawWarden();
   for (const shot of shots) drawShot(shot);
   drawPlayer();
+  drawShield();
   for (const spark of sparks) {
     ctx.globalAlpha = Math.min(1, spark.life / 9);
     box(spark.color, spark.x, spark.y, 3, 3);
@@ -3294,41 +3650,103 @@ function showSeason(season) {
   draw();
 }
 
+function beginTraining(powerIndex, challenge) {
+  if (challenge && progress.mastery[powerIndex] >= masteryCap) return;
+  launchStage(0, false, null, { powerIndex, challenge });
+}
+
+function renderTraining() {
+  for (const [index, power] of powers.entries()) {
+    const row = document.createElement("div");
+    row.className = "training-row";
+    row.style.setProperty("--power-color", power.color);
+    const group = document.createElement("div");
+    const name = document.createElement("strong");
+    name.textContent = power.name;
+    const level = document.createElement("span");
+    group.append(name, level);
+    const practice = document.createElement("button");
+    practice.type = "button";
+    practice.className = "secondary";
+    practice.textContent = "Practice";
+    practice.setAttribute("aria-label", "Practice " + power.name);
+    practice.addEventListener("click", () => beginTraining(index, false));
+    const trial = document.createElement("button");
+    trial.type = "button";
+    trial.className = "secondary";
+    trial.textContent = "Trial";
+    trial.setAttribute("aria-label", power.name + " mastery trial");
+    trial.addEventListener("click", () => beginTraining(index, true));
+    row.append(group, practice, trial);
+    ui.trainingDrills.append(row);
+    trainingRows.push({ level, trial });
+  }
+  for (const medal of medalDefinitions) {
+    const row = document.createElement("li");
+    const name = document.createElement("strong");
+    const description = document.createElement("span");
+    description.textContent = medal.condition;
+    row.append(name, description);
+    ui.medalLedger.append(row);
+  }
+}
+
+function syncTraining() {
+  trainingRows.forEach(({ level, trial }, index) => {
+    const rank = progress.mastery[index];
+    setText(level, "Level " + rank + " / " + masteryCap);
+    trial.disabled = rank >= masteryCap;
+    setText(trial, trial.disabled ? "Maxed" : "Trial");
+  });
+  [...ui.medalLedger.children].forEach((row, index) => {
+    const medal = medalDefinitions[index];
+    const earned = progress.medals.includes(medal.id);
+    row.dataset.earned = String(earned);
+    setText(row.children[0], medal.name + (earned ? " (earned)" : ""));
+  });
+}
+
 function syncCampaign() {
   const count = progress.chaptersCleared;
   const factories = menuSeason === 1;
   const reunion = menuSeason === 2;
-  const lockedSeason = count < [0, blackoutCount, reunionIndex][menuSeason];
+  const training = menuSeason === 3;
+  const lockedSeason = !training && count < [0, blackoutCount, reunionIndex][menuSeason];
   const plantsOffline = Math.max(0, Math.min(reunionIndex, count) - blackoutCount);
   const families = progress.reunionStops;
   ui.blackoutSeason.setAttribute("aria-pressed", String(menuSeason === 0));
   ui.factorySeason.setAttribute("aria-pressed", String(factories));
   ui.reunionSeason.setAttribute("aria-pressed", String(reunion));
+  ui.trainingMode.setAttribute("aria-pressed", String(training));
   ui.blackoutRoute.hidden = menuSeason !== 0;
   ui.factoryRoute.hidden = !factories;
   ui.reunionRoute.hidden = !reunion;
+  ui.trainingRoute.hidden = !training;
   ui.homeTitle.textContent = seasonNames[menuSeason];
   if (phase === "home") ui.seasonTag.textContent = seasonTag(menuSeason);
-  ui.seasonBrief.hidden = menuSeason === 0;
+  ui.seasonBrief.hidden = menuSeason === 0 || training;
   ui.seasonBrief.textContent = reunion ? (lockedSeason ? "Take all seven processing plants offline to unlock Season 3."
     : families === roadDistricts.length ? "The last patrols are gone. The city is together again."
       : "The factories are quiet, but people are still separated by the remaining patrols.")
     : lockedSeason ? "Defeat the Warden at Overload Tower to unlock Season 2."
       : count >= reunionIndex ? "The bot network is down. All seven plants are quiet."
         : "The Warden is down, but its bots are still coming out of seven processing plants.";
-  ui.campaignProgress.textContent = reunion ? families + " of " + roadDistricts.length + " families reunited"
+  ui.campaignProgress.textContent = training ? progress.medals.length + " of " + medalDefinitions.length + " medals earned"
+    : reunion ? families + " of " + roadDistricts.length + " families reunited"
     : factories ? plantsOffline + " of " + plantStages.length + " plants offline"
     : Math.min(count, blackoutCount) + " of " + blackoutCount + " chapters cleared";
   ui.continueCampaign.disabled = lockedSeason;
+  ui.continueCampaign.hidden = training;
   ui.continueCampaign.textContent = reunion
     ? lockedSeason ? "Season 3 locked" : families === roadDistricts.length ? "Replay the journey"
       : families ? "Continue from " + roadDistricts[families].name : "Start Season 3"
     : factories ? lockedSeason ? "Season 2 locked" : count >= reunionIndex ? "Replay the last plant"
       : plantsOffline === 0 ? "Start Season 2" : "Continue to Plant " + (plantsOffline + 1)
     : count >= blackoutCount ? "Replay the Warden" : count === 0 ? "Begin Chapter 1" : "Continue to Chapter " + (count + 1);
-  ui.replayPrologue.hidden = lockedSeason;
+  ui.replayPrologue.hidden = lockedSeason || training;
   const seen = [progress.campaignPrologueSeen, progress.factoryBriefingSeen, progress.reunionBriefingSeen][menuSeason];
   ui.replayPrologue.textContent = (seen ? "Replay " : "Watch ") + (menuSeason === 0 ? "prologue" : "briefing");
+  if (training) syncTraining();
   if (reunion) {
     drawReunionMap(ui.reunionMap, families);
     [...ui.reunionStops.children].forEach((stop, index) => {
@@ -3358,13 +3776,14 @@ ui.homeButton.addEventListener("click", showHome);
 ui.blackoutSeason.addEventListener("click", () => showSeason(0));
 ui.factorySeason.addEventListener("click", () => showSeason(1));
 ui.reunionSeason.addEventListener("click", () => showSeason(2));
+ui.trainingMode.addEventListener("click", () => showSeason(3));
 ui.replayPrologue.addEventListener("click", () => openPrologue());
 ui.continueCampaign.addEventListener("click", () => chooseLevel(menuSeason === 2 ? reunionIndex : menuSeason === 1
   ? Math.max(blackoutCount, Math.min(progress.chaptersCleared, reunionIndex - 1))
   : Math.min(progress.chaptersCleared, blackoutCount - 1)));
 ui.plantShutdown.addEventListener("click", useFieldAction);
 ui.restartButton.addEventListener("click", () => launchStage(stageIndex, false,
-  roadRun && roadRun.index < roadDistricts.length ? roadRun.index : null));
+  roadRun && roadRun.index < roadDistricts.length ? roadRun.index : null, drill));
 ui.shopButton.addEventListener("click", () => {
   if (ui.upgradeShop.open) return;
   resetInput();
@@ -3379,7 +3798,8 @@ ui.upgradeShop.addEventListener("close", () => {
   if (phase === "playing") canvas.focus({ preventScroll: true });
 });
 ui.resultAction.addEventListener("click", () => {
-  if (phase === "failed") launchStage(stageIndex, boss?.active && boss.hp > 0, roadRun?.index);
+  if (phase === "failed") launchStage(stageIndex, boss?.active && boss.hp > 0, roadRun?.index, drill);
+  else if (drill) showHome();
   else if (phase === "cleared" && stageIndex + 1 < stages.length) chooseLevel(stageIndex + 1);
   else showHome();
 });
@@ -3442,6 +3862,7 @@ for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
   window.addEventListener(type, (event) => heldActions.delete(event.pointerId), true);
 }
 
+renderTraining();
 renderLevelMenu();
 renderPowers();
 renderShop();
