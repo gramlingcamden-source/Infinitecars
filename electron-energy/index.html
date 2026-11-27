@@ -211,6 +211,19 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .medal-ledger { padding: 0; margin: 0; list-style: none; }
 .medal-ledger li { display: grid; gap: 3px; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .medal-ledger [data-earned="true"] strong { color: var(--amber); }
+.training-route .extension-heading { margin-top: 20px; }
+.extension-list { margin-top: 10px; }
+.extension-list:empty { display: none; }
+.arena-route { display: grid; grid-template-columns: minmax(0, 2fr) minmax(170px, 1fr); gap: 18px; align-items: center; }
+.arena-visual canvas { display: block; width: 100%; height: auto; background: #273541; }
+.arena-info h2 { margin: 0; font-size: 20px; }
+.arena-info p { color: var(--muted); margin: 6px 0 14px; }
+.arena-choices { display: grid; gap: 7px; margin-top: 10px; }
+.arena-choices button { min-height: 43px; display: grid; justify-items: start; padding: 5px 10px; text-align: left; }
+.arena-choices small { color: var(--muted); }
+.arena-choices button:disabled { opacity: 0.5; cursor: default; }
+.wing-swatch { display: inline-block; width: 21px; height: 15px; margin-right: 8px; background: var(--wing-color);
+  clip-path: polygon(0 0, 100% 42%, 75% 77%, 14% 100%, 35% 50%); }
 .campaign-act {
   --level-accent: #9ef2ce;
   min-width: 0;
@@ -399,6 +412,7 @@ kbd { color: var(--mint); font: 750 11px ui-monospace, monospace; }
   .plant-grid { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .reunion-stops { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .training-route { grid-template-columns: minmax(0, 1fr); }
+  .arena-route { grid-template-columns: minmax(0, 1fr); }
   .campaign-act h2 { margin-bottom: 6px; padding-bottom: 4px; }
   .level-grid { gap: 8px; }
   .level-option { grid-template-columns: 31% minmax(0, 1fr); grid-template-rows: auto; }
@@ -486,7 +500,9 @@ kbd { color: var(--mint); font: 750 11px ui-monospace, monospace; }
             <button id="blackoutSeason" class="secondary" type="button" aria-controls="blackoutRoute" aria-pressed="true">Season 1</button>
             <button id="factorySeason" class="secondary" type="button" aria-controls="factoryRoute" aria-pressed="false">Season 2</button>
             <button id="reunionSeason" class="secondary" type="button" aria-controls="reunionRoute" aria-pressed="false">Season 3</button>
+            <button id="trainSeason" class="secondary" type="button" aria-controls="trainRoute" aria-pressed="false">Season 4</button>
             <button id="trainingMode" class="secondary" type="button" aria-controls="trainingRoute" aria-pressed="false">Training</button>
+            <button id="arenaMode" class="secondary" type="button" aria-controls="arenaRoute" aria-pressed="false">Arena</button>
           </div>
           <div class="level-picker-header">
             <div>
@@ -523,11 +539,25 @@ kbd { color: var(--mint); font: 750 11px ui-monospace, monospace; }
           <div id="reunionRoute" class="reunion-route" hidden>
             <canvas id="reunionMap" width="960" height="228" aria-hidden="true"></canvas>
             <ol id="reunionStops" class="reunion-stops" aria-label="Neighborhoods"></ol>
+            <div id="districtReplays" class="training-drills extension-list" aria-label="District replays"></div>
+          </div>
+          <div id="trainRoute" hidden>
+            <div id="trainGrid" class="plant-grid" aria-label="Storm Train chapters"></div>
+          </div>
+          <div id="arenaRoute" class="arena-route" hidden>
+            <div class="arena-visual" aria-hidden="true"><canvas id="arenaPreview" width="768" height="240"></canvas></div>
+            <div class="arena-info">
+              <h2>Relay Defense</h2>
+              <p id="arenaRecord"></p>
+              <button id="startArena" type="button">Start Arena</button>
+            </div>
           </div>
           <div id="trainingRoute" class="training-route" hidden>
             <section aria-labelledby="academyHeading">
               <h2 id="academyHeading">Power mastery</h2>
               <div id="trainingDrills" class="training-drills"></div>
+              <h2 class="extension-heading">Combo drills</h2>
+              <div id="comboDrills" class="training-drills"></div>
             </section>
             <section aria-labelledby="medalHeading">
               <h2 id="medalHeading">Challenge medals</h2>
@@ -551,7 +581,7 @@ kbd { color: var(--mint); font: 750 11px ui-monospace, monospace; }
 
       <div id="playHud" hidden>
         <div class="field-hud">
-          <div class="stage-readout"><span id="stageNumber">CHAPTER 01</span><strong id="stageName">Blackout District</strong></div>
+          <div class="stage-readout"><span id="stageNumber">CHAPTER 01</span><strong id="stageName">Blackout District</strong> <span id="runTimer" hidden></span></div>
           <div class="objective"><span id="botCount">0 / 3</span><strong>Bots defeated</strong></div>
         </div>
         <div class="meters">
@@ -559,7 +589,7 @@ kbd { color: var(--mint); font: 750 11px ui-monospace, monospace; }
           <label>Energy <meter id="energy" min="0" max="100" value="100"></meter><span id="energyAmount" aria-hidden="true">100/100</span></label>
         </div>
         <div id="bossHud" class="boss-hud" hidden>
-          <label for="bossHealth">The Warden</label>
+          <label id="bossLabel" for="bossHealth">The Warden</label>
           <meter id="bossHealth" min="0"></meter>
           <span id="bossState"></span>
         </div>
@@ -592,6 +622,7 @@ kbd { color: var(--mint); font: 750 11px ui-monospace, monospace; }
           <h2 id="resultTitle"></h2>
           <p id="resultDescription"></p>
           <button id="resultAction" type="button"></button>
+          <div id="arenaChoices" class="arena-choices" hidden></div>
         </div>
       </section>
     </section>
@@ -634,9 +665,11 @@ kbd { color: var(--mint); font: 750 11px ui-monospace, monospace; }
     <div class="shop-tabs" role="group" aria-label="Shop section">
       <button id="shopUpgradesTab" class="secondary" type="button" aria-pressed="true" aria-controls="upgradeList">Upgrades</button>
       <button id="shopSkinsTab" class="secondary" type="button" aria-pressed="false" aria-controls="skinList">Skins</button>
+      <button id="shopWingsTab" class="secondary" type="button" aria-pressed="false" aria-controls="wingList">Wings</button>
     </div>
     <div id="upgradeList" class="upgrade-list" aria-label="Upgrades"></div>
     <div id="skinList" class="skin-list" aria-label="Skins" hidden></div>
+    <div id="wingList" class="upgrade-list" aria-label="Wings" hidden></div>
     <p id="shopFeedback" class="shop-feedback" role="status"></p>
     <template id="upgradeTemplate">
       <div class="upgrade-row">
@@ -1861,7 +1894,7 @@ function updateShield() {
   else if (player.energy <= 0) player.shieldLocked = true;
   player.shielded = held && !player.shieldLocked && player.energy > 0;
   if (!player.shielded) return;
-  if (!drill || drill.challenge) spendEnergy(0.62);
+  if ((!drill || drill.challenge) && challengeRun?.kind !== "combo") spendEnergy(0.62);
   if (player.energy <= 0) {
     player.shielded = false;
     player.shieldLocked = true;
@@ -1874,11 +1907,15 @@ function escortShielded() {
   return Math.hypot(player.body.position.x - escort.x, player.body.position.y - (escortFooting(escort.x) - 21)) < 87;
 }
 
+function shieldRadius() {
+  return 48 + (challengeRun?.perks?.filter(perk => perk === "shield").length ?? 0) * 18;
+}
+
 function shieldIntercepts(shot) {
   if (!player.shielded) return false;
   const { x, y } = player.body.position;
   const escort = roadRun?.follower;
-  const nearPlayer = Math.hypot(shot.x - x, shot.y - y) < 48;
+  const nearPlayer = Math.hypot(shot.x - x, shot.y - y) < shieldRadius();
   const nearEscort = escortShielded() && Math.hypot(shot.x - escort.x, shot.y - (escortFooting(escort.x) - 21)) < 33;
   if (!nearPlayer && !nearEscort) return false;
   burst(shot.x, shot.y, "#98e7fa", 7);
@@ -1954,11 +1991,433 @@ function drawShield() {
     ctx.lineWidth = 2;
     ctx.stroke();
   };
-  ring(player.body.position.x, player.body.position.y, 47);
+  ring(player.body.position.x, player.body.position.y, shieldRadius() - 1);
   if (escortShielded()) {
     const { x } = roadRun.follower;
     ring(x, escortFooting(x) - 21, 32);
   }
+}
+"use strict";
+
+const comboRecipes = [
+  { name: "Shatter", powers: [0, 3], cue: "Freeze a bot, then strike it with Earth.", color: "#b4efff" },
+  { name: "Chain Plasma", powers: [2, 1], cue: "Tag a bot with Magnet, then hit it with Plasma near other bots.", color: "#dcadff" }
+];
+const wingStyles = {
+  standard: { name: "Standard", glow: "#73d9b989", edge: "#adffdf", note: "Standard issue" },
+  frost: { name: "Frost", glow: "#68b9eead", edge: "#d7f7ff", note: "Complete both combo drills" },
+  ember: { name: "Ember", glow: "#f0764790", edge: "#ffcb74", note: "Survive all five Arena waves" },
+  storm: { name: "Storm", glow: "#9b84e8ae", edge: "#e9d9ff", note: "Defeat the Storm Conductor" }
+};
+const arenaWaves = 5;
+const relayHealth = 100;
+const ghostInterval = 8;
+const ghostSamples = 900;
+const arenaPerks = [
+  { id: "shield", label: "Wide Shield", detail: "Block shots from farther away." },
+  { id: "flight", label: "Light Wings", detail: "Flight uses less energy." },
+  { id: "repair", label: "Relay Repair", detail: "Restore 28 relay health immediately." }
+];
+const stormPhases = [
+  { moves: ["strike", "volley"], warning: 58, opening: 125, damage: 22 },
+  { moves: ["sweep", "strike", "volley"], warning: 49, opening: 109, damage: 25 },
+  { moves: ["strike", "volley", "sweep"], warning: 44, opening: 100, damage: 29 }
+];
+const trainStages = [
+  { name: "Runaway Express", brief: "Board the runaway train and guide two passengers to safety.", width: 1740,
+    sky: ["#273343", "#b78168"], ridge: "#625864", rock: "#3d4d4b", trim: "#e8be8b",
+    platforms: [[290, 412, 183], [554, 335, 156], [798, 405, 219], [1146, 352, 181], [1379, 415, 156]],
+    bots: [[388, 0], [633, 1], [915, 2], [1260, 3], [1470, 4]], passengers: [488, 1080],
+    lifts: [[498, 404, 78, 52, 0], [1030, 414, 95, 47, 36]], chargePads: [0, 2, 4], hp: 3, speed: 1.62, damage: 15 },
+  { name: "The Lightning Cars", brief: "Cross the capacitor cars and rescue the last two passengers.", width: 2110,
+    sky: ["#282a42", "#8792ad"], ridge: "#4d526e", rock: "#444457", trim: "#c7bbff",
+    platforms: [[230, 414, 180], [470, 337, 161], [708, 270, 163], [930, 393, 205], [1200, 313, 149],
+      [1436, 244, 160], [1668, 355, 145], [1820, 421, 169]],
+    bots: [[310, 0], [550, 1], [796, 2], [1043, 3], [1280, 4], [1530, 5], [1760, 6]], passengers: [654, 1382],
+    lifts: [[648, 363, 74, 56, 25], [1370, 373, 80, 63, 71]], floorArcs: [[420, 112, 36], [1106, 110, 84], [1610, 122, 140]],
+    chargePads: [0, 3, 7], hp: 3, speed: 1.8, damage: 18 },
+  { name: "Eye of the Storm", brief: "Reach the engine. Stop the Storm Conductor before the core overloads.", width: 2460,
+    finale: true, sky: ["#2f263f", "#767e9b"], ridge: "#555270", rock: "#3c4755", trim: "#e7c9fc",
+    platforms: [[228, 415, 195], [497, 338, 161], [740, 266, 182], [993, 398, 195], [1254, 315, 162],
+      [1510, 239, 176], [1767, 405, 149]],
+    bots: [[337, 0], [580, 1], [832, 2], [1091, 3], [1344, 4], [1589, 5]], passengers: [],
+    lifts: [[680, 377, 91, 61, 12], [1425, 361, 90, 66, 56]], floorArcs: [[451, 114, 74], [1205, 111, 0], [1666, 109, 122]],
+    chargePads: [0, 3, 6], hp: 4, speed: 1.91, damage: 20 }
+].map(layout => ({ ...layout, train: true }));
+
+function loadExpansion(saved) {
+  const runs = roadDistricts.map((district, i) => {
+    const record = saved?.districtRuns?.[i];
+    if (!Number.isSafeInteger(record?.frames) || record.frames < 1) return null;
+    const points = Array.isArray(record.points) ? record.points.slice(0, ghostSamples).filter(point =>
+      Array.isArray(point) && point.length === 3 && point.every(Number.isSafeInteger) &&
+      point[0] >= 0 && point[0] <= district.width && point[1] >= 0 && point[1] <= 600 &&
+      (point[2] === 1 || point[2] === -1)) : [];
+    return { frames: record.frames, points };
+  });
+  return {
+    districtRuns: runs,
+    comboClears: comboRecipes.flatMap((_, i) => Array.isArray(saved?.comboClears) && saved.comboClears.includes(i) ? [i] : []),
+    arenaBest: Number.isInteger(saved?.arenaBest) ? Math.max(0, Math.min(arenaWaves, saved.arenaBest)) : 0,
+    wings: Object.hasOwn(wingStyles, saved?.wings) ? saved.wings : "standard"
+  };
+}
+
+function wingUnlocked(id) {
+  return id === "standard" || (id === "frost" && progress.comboClears.length === comboRecipes.length) ||
+    (id === "ember" && progress.arenaBest >= arenaWaves) || (id === "storm" && progress.chaptersCleared >= stages.length);
+}
+
+function createChallenge(options) {
+  if (!options) return null;
+  if (options.kind === "replay") return { ...options, points: [] };
+  const arena = options.kind === "arena";
+  return {
+    ...options, relay: relayHealth, wave: 1, perks: [], triggered: false,
+    layout: { name: arena ? "Relay Defense" : comboRecipes[options.id].name + " Drill",
+      width: arena ? 1420 : 1050, sky: ["#263144", "#889b91"], ridge: "#4c6471", rock: "#354a4a", trim: "#a5dec5",
+      platforms: arena ? [[255, 410, 165], [551, 405, 200], [946, 408, 171]] : [[810, 393, 194]],
+      bots: arena ? [[137, null], [1046, 2], [1265, null]] : [[415, null], [513, null], [610, null]],
+      hp: arena ? 2 : 9, speed: arena ? 1.3 : 0, damage: arena ? 12 : 0,
+      chargePads: arena ? [0, 1, 2] : [] }
+  };
+}
+
+function attackBot(bot, damage, color, stun) {
+  bot.hp = Math.max(0, bot.hp - damage);
+  bot.stun = Math.max(bot.stun, stun);
+  const { x, y } = bot.body.position;
+  burst(x, y, color, bot.hp === 0 ? 18 : 7);
+  if (!bot.hp) Composite.remove(engine.world, bot.body);
+}
+
+function applyCombo(bot, shot) {
+  const name = shot.power.name;
+  const { x, y } = bot.body.position;
+  const neighbors = (range, rise) => bots.filter(other => other !== bot && other.hp > 0 && patrolActive(other) &&
+    Math.abs(other.body.position.x - x) <= range && Math.abs(other.body.position.y - y) <= rise);
+  if (name === "Freeze") bot.frozenUntil = frame + Math.max(82, shot.power.stun || 0);
+  if (name === "Magnet") {
+    bot.polarizedUntil = frame + 135;
+    for (const other of neighbors(152, 24)) {
+      const sameDeck = other.deck === bot.deck;
+      if (sameDeck) {
+        other.kick = Math.sign(x - other.body.position.x) * 4;
+        other.stun = Math.max(other.stun, 13);
+      }
+    }
+  }
+  const shatter = name === "Earth" && bot.frozenUntil > frame;
+  const arc = name === "Plasma" && bot.polarizedUntil > frame;
+  const others = arc ? neighbors(185, 105).slice(0, 3) : shatter ? neighbors(105, 52) : [];
+  if (!shatter && (!arc || !others.length)) return 0;
+  const id = shatter ? 0 : 1;
+  if (shatter) bot.frozenUntil = 0;
+  else bot.polarizedUntil = 0;
+  const recipe = comboRecipes[id];
+  comboFlash = { name: recipe.name, color: recipe.color, x, y, until: frame + 77,
+    arcs: arc ? others.map(other => ({ ...other.body.position })) : [] };
+  for (const other of others) {
+    attackBot(other, shatter ? 1.75 : 2, recipe.color, shatter ? 38 : 22);
+    if (shatter) other.kick = Math.sign(other.body.position.x - x) * 6;
+    other.polarizedUntil = 0;
+  }
+  if (challengeRun?.kind === "combo" && challengeRun.id === id) challengeRun.triggered = true;
+  return shatter ? 3 : 1.25;
+}
+
+function formatRun(frames) {
+  const centis = Math.floor(frames * 100 / 60);
+  return Math.floor(centis / 6000) + ":" + String(Math.floor(centis / 100) % 60).padStart(2, "0") + "." + String(centis % 100).padStart(2, "0");
+}
+
+function sampleReplay() {
+  const { x, y } = player.body.position;
+  if (challengeRun.points.length >= ghostSamples) return;
+  challengeRun.points.push([Math.round(x - roadDistrict().start), Math.round(y), player.facing]);
+}
+
+function finishReplay() {
+  const run = challengeRun;
+  const best = progress.districtRuns[run.district];
+  const record = !best || frame < best.frames;
+  if (record) progress.districtRuns[run.district] = { frames: Math.max(1, frame), points: run.points };
+  const medal = roadRun.clean && awardMedal("escort-" + run.district);
+  saveProgress();
+  phase = "cleared";
+  showResult(roadDistrict().name + " reunited",
+    formatRun(frame) + (record ? " | New personal best." : " | Best: " + formatRun(best.frames) + ".") +
+    (medal ? " No-damage medal earned." : ""), "Back to districts");
+}
+
+function drawDistrictGhost() {
+  if (challengeRun?.kind !== "replay") return;
+  const best = progress.districtRuns[challengeRun.district];
+  const offset = frame / ghostInterval;
+  const point = best?.points[Math.floor(offset)];
+  if (!point || phase !== "playing" || frame > best.frames) return;
+  const next = best.points[Math.ceil(offset)] ?? point;
+  const blend = offset % 1;
+  ctx.save();
+  ctx.globalAlpha = 0.36;
+  ctx.translate(roadDistrict().start + point[0] + (next[0] - point[0]) * blend, point[1] + (next[1] - point[1]) * blend);
+  ctx.scale(point[2], 1);
+  drawSkinSprite(ctx, "pilot", Math.sin(frame * 0.3) * 3);
+  ctx.restore();
+}
+
+function arenaRelayTarget(bot) {
+  if (challengeRun?.kind !== "arena") return null;
+  return bot.relayHunter ? { x: 680, y: floorY - 25 } : null;
+}
+
+function arenaRelayHit(shot) {
+  if (challengeRun?.kind !== "arena" || Math.abs(shot.x - 680) > 20 || shot.y < floorY - 60) return false;
+  challengeRun.relay = Math.max(0, challengeRun.relay - (shot.relay ? 10 : 4));
+  burst(shot.x, shot.y, "#ffaf7a", 8);
+  return true;
+}
+
+function nextArenaWave(id) {
+  const run = challengeRun;
+  if (phase !== "intermission" || run?.kind !== "arena" || !arenaPerks.some(perk => perk.id === id)) return;
+  if (id === "repair") run.relay = Math.min(relayHealth, run.relay + 28);
+  else run.perks.push(id);
+  run.wave++;
+  Object.assign(run.layout, { hp: 2 + Math.floor(run.wave / 2), speed: 1.25 + run.wave * 0.16, damage: 10 + run.wave * 2 });
+  const slots = [[135, null], [1285, null], [1046, 2], [320, 0], [770, null], [470, null], [1370, null]];
+  bots = spawnPatrol(slots.slice(0, run.wave + 2), run.layout);
+  bots.forEach((bot, i) => { bot.relayHunter = i % 2 === 0; bot.cooldown += 25; });
+  Composite.add(engine.world, bots.map(bot => bot.body));
+  player.hp = Math.min(player.maxHealth, player.hp + 18);
+  player.energy = player.maxEnergy;
+  shots.length = 0;
+  phase = "playing";
+  ui.stageResult.hidden = true;
+  canvas.focus({ preventScroll: true });
+  syncHud();
+}
+
+function stepChallenge() {
+  if (challengeRun?.kind === "combo") {
+    if (challengeRun.triggered) {
+      const first = !progress.comboClears.includes(challengeRun.id);
+      if (first) progress.comboClears.push(challengeRun.id);
+      saveProgress();
+      phase = "cleared";
+      showResult("Combo complete", comboRecipes[challengeRun.id].name + " triggered." +
+        (first && wingUnlocked("frost") ? " Frost wings unlocked." : ""), "Back to training");
+    } else if (bots.every(bot => bot.hp <= 0)) {
+      phase = "failed";
+      showResult("Targets down", comboRecipes[challengeRun.id].cue, "Retry drill");
+    }
+    return;
+  }
+  if (challengeRun?.kind !== "arena") return;
+  const run = challengeRun;
+  if (!run.relay || !player.hp) {
+    phase = "failed";
+    showResult(run.relay ? "Signal lost" : "Relay offline", "Waves cleared: " + (run.wave - 1) + " / " + arenaWaves + ".", "Retry arena");
+  } else if (bots.every(bot => bot.hp <= 0)) {
+    progress.arenaBest = Math.max(progress.arenaBest, run.wave);
+    saveProgress();
+    if (run.wave === arenaWaves) {
+      phase = "cleared";
+      showResult("Relay secured", "All five waves cleared. Ember wings are available in the shop.", "Back to Arena");
+      return;
+    }
+    phase = "intermission";
+    showResult("Wave " + run.wave + " cleared", "Choose one upgrade for this run.", "");
+    ui.resultAction.hidden = true;
+    ui.arenaChoices.hidden = false;
+    for (const button of ui.arenaChoices.children) {
+      button.disabled = button.dataset.perk !== "repair" && run.perks.filter(perk => perk === button.dataset.perk).length >= 2;
+    }
+    [...ui.arenaChoices.children].find(button => !button.disabled)?.focus();
+  }
+}
+
+function createTrainRun(layout) {
+  if (!layout.train) return null;
+  return {
+    lifts: layout.lifts.map(([x, y, width, distance, offset]) => ({
+      x, y, width, distance, offset, top: y,
+      body: Bodies.rectangle(x + width / 2, y + 8, width, 16, { isStatic: true })
+    })),
+    passengers: layout.passengers.map(x => ({ x, safe: false }))
+  };
+}
+
+function trainAction() {
+  if (!trainRun || phase !== "playing" || ui.upgradeShop.open || player.body.bounds.max.y < floorY - 18) return null;
+  return trainRun.passengers.find(passenger => !passenger.safe && Math.abs(passenger.x - player.body.position.x) < 54) ?? null;
+}
+
+function stepLifts() {
+  for (const lift of trainRun?.lifts ?? []) {
+    const old = lift.top;
+    lift.top = lift.y - (1 - Math.cos((frame + lift.offset) * 0.032)) / 2 * lift.distance;
+    const carried = player.body.velocity.y >= -0.1 && deckContact(player.body, [lift.x, old, lift.width]);
+    Body.setPosition(lift.body, { x: lift.x + lift.width / 2, y: lift.top + 8 });
+    if (carried) Body.translate(player.body, { x: 0, y: lift.top - old }, false);
+  }
+}
+
+function drawExpansion() {
+  if (trainRun) {
+    for (let x = Math.floor(view.x / 344) * 344; x < view.x + view.width + 344; x += 344) {
+      box("#263140", x + 3, floorY + 4, 332, 66);
+      box("#74868f", x + 4, floorY + 3, 330, 5);
+      box("#685461", x + 8, floorY + 54, 326, 4);
+      for (let n = 0; n < 5; n++) {
+        box("#121f2d", x + 20 + n * 61, floorY + 15, 43, 30);
+        box(n % 2 ? "#a9947f" : "#647c86", x + 23 + n * 61, floorY + 18, 37, 23);
+      }
+      box("#494956", x + 330, floorY + 43, 23, 10);
+    }
+    for (const lift of trainRun.lifts) {
+      box("#505768", lift.x + lift.width / 2 - 3, lift.y - lift.distance, 6, floorY - lift.y + lift.distance);
+      box("#414d63", lift.x, lift.top, lift.width, 16);
+      box("#ffcd87", lift.x, lift.top, lift.width, 4);
+      for (let x = 5; x < lift.width - 10; x += 17) box("#ce9a76", lift.x + x, lift.top + 7, 9, 3);
+    }
+    for (const passenger of trainRun.passengers) {
+      box("#303a40", passenger.x - 35, floorY - 65, 70, 65);
+      box(passenger.safe ? "#abebbb" : "#ffc883", passenger.x - 35, floorY - 65, 70, 4);
+      if (!passenger.safe) drawRoadResident(ctx, passenger.x, floorY, "#e3ac77", 0, 0.9);
+    }
+  }
+  if (challengeRun?.kind === "arena") {
+    const healthy = challengeRun.relay > 30;
+    box("#252936", 660, floorY - 43, 40, 43);
+    box(healthy ? "#7ee4bc" : "#f59c80", 668, floorY - 35, 24, 23);
+    box("#b0d0c9", 663, floorY - 9, 34, 3);
+    box("#262725", 652, floorY - 56, 56, 4);
+    box(healthy ? "#9aefc2" : "#ed927e", 652, floorY - 56, 56 * challengeRun.relay / relayHealth, 4);
+  }
+}
+
+function drawComboFlash() {
+  if (!comboFlash || frame >= comboFlash.until) return;
+  const { x, y, arcs, name, color, until } = comboFlash;
+  if (until - frame > 55) {
+    for (const target of arcs) {
+      const points = [[x, y], [(2 * x + target.x) / 3, (2 * y + target.y) / 3 - 14],
+        [(x + 2 * target.x) / 3, (y + 2 * target.y) / 3 + 8], [target.x, target.y]];
+      storyLine(ctx, color, 6, points);
+      storyLine(ctx, "#fff4ff", 2, points);
+    }
+  }
+  ctx.save();
+  ctx.font = "bold 14px system-ui";
+  ctx.textAlign = "center";
+  ctx.fillStyle = color;
+  ctx.fillText(name, x, y - 41 - (77 - until + frame) * 0.28);
+  ctx.restore();
+}
+
+function drawWings() {
+  const id = wingUnlocked(progress.wings) ? progress.wings : "standard";
+  const style = wingStyles[id];
+  const sweep = Math.sin(frame * 0.29) * 4;
+  const outline = id === "frost" ? [[-6, -9], [-46, -26], [-41, -7], [-64, -12], [-45, 8], [-8, 9]]
+    : id === "ember" ? [[-5, -7], [-42, -22], [-59, -12], [-48, -5], [-65, 10], [-38, 18], [-8, 8]]
+      : id === "storm" ? [[-4, -9], [-61, -24], [-43, -7], [-64, -2], [-40, 6], [-55, 15], [-8, 7]]
+        : [[-4, -9], [-56, -21], [-47, -4], [-57, 12], [-7, 6]];
+  polygon(style.glow, outline.map(([x, y]) => [x, y + (x < -30 ? sweep : 0)]));
+  polygon(style.edge, [[-7, -8], [-46, -13 + sweep], [-20, 1], [-39, 7 + sweep], [-7, 5]]);
+}
+
+function menuRow(container, name, label, activate) {
+  const row = document.createElement("div");
+  row.className = "training-row";
+  const detail = document.createElement("div");
+  const title = document.createElement("strong");
+  title.textContent = name;
+  const status = document.createElement("span");
+  detail.append(title, status);
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "secondary";
+  button.textContent = label;
+  button.setAttribute("aria-label", label + " " + name);
+  button.addEventListener("click", activate);
+  row.append(detail, button);
+  container.append(row);
+  return { status, button, row };
+}
+
+function launchDistrictReplay(district) {
+  launchStage(reunionIndex, false, district, null, { kind: "replay", district });
+}
+
+function renderExpansionMenus() {
+  for (const [i, combo] of comboRecipes.entries()) {
+    const { row } = menuRow(ui.comboDrills, combo.name, "Practice", () => launchStage(0, false, null, null, { kind: "combo", id: i }));
+    row.style.setProperty("--power-color", combo.color);
+  }
+  for (const [i, district] of roadDistricts.entries()) {
+    const { row } = menuRow(ui.districtReplays, district.name, "Replay", () => launchDistrictReplay(i));
+    row.style.setProperty("--power-color", district.trim);
+  }
+  for (const perk of arenaPerks) {
+    const button = document.createElement("button");
+    const label = document.createElement("strong");
+    const detail = document.createElement("small");
+    button.type = "button";
+    button.className = "secondary";
+    button.dataset.perk = perk.id;
+    label.textContent = perk.label;
+    detail.textContent = perk.detail;
+    button.append(label, detail);
+    button.addEventListener("click", () => nextArenaWave(perk.id));
+    ui.arenaChoices.append(button);
+  }
+  for (const [id, wing] of Object.entries(wingStyles)) {
+    const { row, button } = menuRow(ui.wingList, wing.name + " Wings", "Equip", () => {
+      if (!wingUnlocked(id)) return;
+      progress.wings = id;
+      const saved = saveProgress();
+      syncWingShop();
+      reportShopChange(wing.name + " wings equipped.", saved);
+      draw();
+      ui.closeShopButton.focus();
+    });
+    row.style.setProperty("--power-color", wing.edge);
+    row.style.setProperty("--wing-color", wing.edge);
+    const swatch = document.createElement("span");
+    swatch.className = "wing-swatch";
+    swatch.setAttribute("aria-hidden", "true");
+    row.children[0].children[0].prepend(swatch);
+    button.dataset.wing = id;
+  }
+  const layout = createChallenge({ kind: "arena" }).layout;
+  drawLevelPreview({ querySelector: () => ui.arenaPreview }, layout);
+}
+
+function syncWingShop() {
+  [...ui.wingList.children].forEach(row => {
+    const button = row.children[1];
+    const id = button.dataset.wing;
+    const unlocked = wingUnlocked(id);
+    const equipped = unlocked && progress.wings === id;
+    setText(row.children[0].children[1], unlocked ? (equipped ? "Equipped" : "Unlocked") : wingStyles[id].note);
+    button.disabled = !unlocked || equipped;
+    button.textContent = equipped ? "Equipped" : unlocked ? "Equip" : "Locked";
+  });
+}
+
+function syncExpansionMenus() {
+  [...ui.comboDrills.children].forEach((row, i) =>
+    setText(row.children[0].children[1], progress.comboClears.includes(i) ? "Completed" : comboRecipes[i].cue));
+  [...ui.districtReplays.children].forEach((row, i) => {
+    row.hidden = i >= progress.reunionStops;
+    const best = progress.districtRuns[i];
+    const medal = progress.medals.includes("escort-" + i) ? "Medal earned" : "No-damage medal available";
+    setText(row.children[0].children[1], medal + (best ? " | Best " + formatRun(best.frames) : ""));
+  });
+  ui.districtReplays.hidden = progress.reunionStops === 0;
+  setText(ui.arenaRecord, "Best: " + progress.arenaBest + " of " + arenaWaves + " waves cleared");
 }
 "use strict";
 
@@ -1976,7 +2435,9 @@ const ui = Object.fromEntries([
   "blackoutSeason", "factorySeason", "blackoutRoute", "factoryRoute", "plantGrid", "plantShutdown",
   "reunionSeason", "reunionRoute", "reunionMap", "reunionStops", "roadHud", "roadCount",
   "escortVitals", "escortHealthLabel", "escortHealth", "escortHealthAmount",
-  "trainingMode", "trainingRoute", "trainingDrills", "medalLedger"
+  "trainingMode", "trainingRoute", "trainingDrills", "medalLedger", "bossLabel",
+  "trainSeason", "trainRoute", "trainGrid", "comboDrills", "districtReplays", "arenaMode", "arenaRoute",
+  "arenaRecord", "startArena", "arenaChoices", "arenaPreview", "shopWingsTab", "wingList", "runTimer"
 ].map((id) => [id, document.getElementById(id)]));
 const levelButtons = [];
 const playPrologue = createPrologue(ui.prologue);
@@ -2116,9 +2577,10 @@ const acts = [
 const blackoutStages = acts.flat();
 const blackoutCount = blackoutStages.length;
 const reunionIndex = blackoutCount + plantStages.length;
-const stages = [...blackoutStages, ...plantStages, reunionStage];
-const seasonNames = ["The Blackout", "The Last Factories", "The Way Home", "Training"];
-const campaignVersion = 4;
+const trainIndex = reunionIndex + 1;
+const stages = [...blackoutStages, ...plantStages, reunionStage, ...trainStages];
+const seasonNames = ["The Blackout", "The Last Factories", "The Way Home", "Training", "The Storm Train", "Arena"];
+const campaignVersion = 5;
 const debriefs = [
   "Dispatch: The district is clear. Get to the rooftops before the next patrol.",
   "Dispatch: I picked up a signal in the basin. Follow it to find the Warden's relay network.",
@@ -2173,9 +2635,12 @@ let barrier;
 let shots;
 let sparks;
 let stageIndex = 0;
-let menuSeason = seasonFor(progress.chaptersCleared);
+let menuSeason = progress.chaptersCleared === trainIndex ? 2 : seasonFor(progress.chaptersCleared);
 let roadRun = null;
 let drill = null;
+let challengeRun = null;
+let trainRun = null;
+let comboFlash = null;
 let fieldObjects = [];
 let phase = "home";
 let selectedPower = 1;
@@ -2185,15 +2650,16 @@ let lastTime = 0;
 let accumulator = 0;
 
 function stage() {
-  return drill?.layout ?? stages[stageIndex];
+  return drill?.layout ?? challengeRun?.layout ?? stages[stageIndex];
 }
 
 function seasonFor(index) {
-  return index >= reunionIndex ? 2 : index >= blackoutCount ? 1 : 0;
+  return index >= trainIndex ? 4 : index >= reunionIndex ? 2 : index >= blackoutCount ? 1 : 0;
 }
 
 function seasonTag(season) {
-  return season === 3 ? "Training bay" : "Season " + (season + 1) + ": " + seasonNames[season];
+  return season === 3 ? "Training bay" : season === 5 ? "Side operation: Relay Defense"
+    : "Season " + (season === 4 ? 4 : season + 1) + ": " + seasonNames[season];
 }
 
 function loadProgress() {
@@ -2208,12 +2674,13 @@ function loadProgress() {
     ? saved.ownedSkins.filter((id) => typeof id === "string" && Object.hasOwn(skinCatalog, id))
     : [];
   const ownedSkins = [...new Set(["pilot", ...unlocked])];
-  const chapterCap = saved?.campaignVersion === campaignVersion ? stages.length
+  const chapterCap = saved?.campaignVersion === campaignVersion ? stages.length : saved?.campaignVersion === 4 ? trainIndex
     : saved?.campaignVersion === 3 ? reunionIndex : saved?.campaignVersion === 2 ? blackoutCount : 12;
   const chaptersCleared = saved?.campaignPrologueSeen === true && Number.isInteger(saved?.chaptersCleared)
     ? Math.max(0, Math.min(chapterCap, saved.chaptersCleared)) : 0;
   return {
     ...loadCombatProgress(saved),
+    ...loadExpansion(saved),
     credits: Number.isSafeInteger(credits) && credits >= 0 ? credits : 0,
     upgrades: Object.fromEntries(Object.keys(upgradeOptions).map((id) => {
       const level = saved?.upgrades?.[id];
@@ -2273,6 +2740,7 @@ function finishX() {
 
 function openPrologue(level = null) {
   const season = level === null ? menuSeason : seasonFor(level);
+  if (season > 2) return;
   if (progress.chaptersCleared < [0, blackoutCount, reunionIndex][season]) return;
   const watchedKey = ["campaignPrologueSeen", "factoryBriefingSeen", "reunionBriefingSeen"][season];
   const clip = season === 2 ? {
@@ -2311,16 +2779,34 @@ function actor(x, y, width, height) {
   return body;
 }
 
-function launchStage(index, atWarden = false, roadCheckpoint = null, lesson = null) {
-  if (!lesson) {
+function spawnPatrol(placements, layout, atWarden = false) {
+  const patrolPositions = [];
+  return placements.map(([x, ledge, district], index) => {
+    const [left, y, width] = layout.platforms[ledge] ?? [x - 80, floorY, 160];
+    const slot = patrolPositions[district] ?? 0;
+    patrolPositions[district] = slot + 1;
+    return { body: actor(x, y - 21, 32, 38), left: left + 25, right: left + width - 25,
+      direction: index % 2 ? -1 : 1, district, deck: ledge,
+      hp: atWarden || (roadRun && district < roadRun.index) ? 0 : layout.districts?.[district].hp ?? layout.hp,
+      cooldown: roadRun ? 40 + index % 6 * 19 : 50 + index * 21, stun: 0, kick: 0,
+      role: roadRun ? roadBotRole(district, slot) : null };
+  });
+}
+
+function launchStage(index, atWarden = false, roadCheckpoint = null, lesson = null, special = null) {
+  if (!lesson && !special) {
     if (!progress.campaignPrologueSeen || !stages[index] || index > progress.chaptersCleared) return;
     if (index === reunionIndex && !progress.reunionBriefingSeen) return;
     if (index >= blackoutCount && index < reunionIndex && !progress.factoryBriefingSeen) return;
   }
+  if (special?.kind === "replay" && (!roadDistricts[special.district] || special.district >= progress.reunionStops)) return;
   drill = lesson ? makeDrill(lesson.powerIndex, lesson.challenge) : null;
+  challengeRun = createChallenge(special);
+  comboFlash = null;
   stageIndex = index;
   const layout = stage();
-  menuSeason = drill ? 3 : seasonFor(index);
+  trainRun = createTrainRun(layout);
+  menuSeason = drill || challengeRun?.kind === "combo" ? 3 : challengeRun?.kind === "arena" ? 5 : seasonFor(index);
   ui.seasonTag.textContent = seasonTag(menuSeason);
   roadRun = layout.reunion ? {
     index: roadCheckpoint ?? (progress.reunionStops < roadDistricts.length ? progress.reunionStops : 0),
@@ -2335,41 +2821,36 @@ function launchStage(index, atWarden = false, roadCheckpoint = null, lesson = nu
   const ledges = layout.platforms.map(([x, y, width]) =>
     Bodies.rectangle(x + width / 2, y + 12, width, 24, { isStatic: true })
   );
-  barrier = makeBarrier(roadRun ? roadDistrict().end - 27 : finishX());
+  barrier = roadRun || !challengeRun ? makeBarrier(roadRun ? roadDistrict().end - 27 : finishX()) : null;
   const maxHealth = upgradeValue("health");
   const maxEnergy = upgradeValue("energy");
-  const spawn = roadRun ? roadDistrict().start + 70 : atWarden ? layout.width - 650 : startX - 50;
+  const spawn = roadRun ? roadDistrict().start + 70 : atWarden ? layout.width - 650 : challengeRun?.kind === "arena" ? 660 : startX - 50;
   player = {
     body: actor(spawn, floorY - 23, 28, 44),
     facing: 1, hp: maxHealth, maxHealth, energy: maxEnergy, maxEnergy,
     cooldown: 0, invulnerable: 0, coyote: 0, flying: false, flightLocked: false, rechargeWait: 0,
     shielded: false, shieldLocked: false
   };
-  const patrolPositions = [];
-  bots = layout.bots.map(([x, ledge, district], index) => {
-    const [left, y, width] = layout.platforms[ledge] ?? [x - 80, floorY, 160];
-    const slot = patrolPositions[district] ?? 0;
-    patrolPositions[district] = slot + 1;
-    return { body: actor(x, y - 21, 32, 38), left: left + 25, right: left + width - 25,
-      direction: index % 2 ? -1 : 1, district,
-      hp: atWarden || (roadRun && district < roadRun.index) ? 0 : layout.districts?.[district].hp ?? layout.hp,
-      cooldown: roadRun ? 40 + index % 6 * 19 : 50 + index * 21, stun: 0,
-      role: roadRun ? roadBotRole(district, slot) : null };
-  });
-  boss = layout.finale ? createWarden(layout.width - 295, atWarden) : null;
-  Composite.add(engine.world, [ground, ceiling, ...ledges, barrier, player.body,
+  bots = spawnPatrol(layout.bots, layout, atWarden);
+  if (challengeRun?.kind === "arena") bots[2].relayHunter = true;
+  boss = layout.finale ? createWarden(layout.width - 295, atWarden, layout.train) : null;
+  Composite.add(engine.world, [ground, ceiling, ...ledges, ...(trainRun?.lifts.map(lift => lift.body) ?? []),
+    ...(barrier ? [barrier] : []), player.body,
     ...bots.filter((bot) => bot.hp > 0).map((bot) => bot.body)]);
   if (boss) Composite.add(engine.world, boss.body);
   shots = [];
   sparks = [];
   phase = "playing";
   frame = 0;
-  view.x = atWarden || roadRun ? Math.max(0, Math.min(layout.width - view.width, spawn - view.width * 0.36)) : 0;
+  if (challengeRun?.kind === "replay") sampleReplay();
+  view.x = atWarden || roadRun || challengeRun?.kind === "arena" ? Math.max(0, Math.min(layout.width - view.width, spawn - view.width * 0.36)) : 0;
   resetInput();
-  selectPower(drill ? drill.powerIndex : selectedPower);
+  selectPower(drill ? drill.powerIndex : challengeRun?.kind === "combo" ? comboRecipes[challengeRun.id].powers[0] : selectedPower);
   if (roadRun) syncDistrictTitle();
   else {
     ui.stageNumber.textContent = drill ? (drill.challenge ? "MASTERY TRIAL" : "FREE PRACTICE")
+      : challengeRun?.kind === "arena" ? "SURVIVAL ARENA" : challengeRun?.kind === "combo" ? "COMBO DRILL"
+      : layout.train ? "STORM TRAIN " + (index - trainIndex + 1) + " / " + trainStages.length
       : layout.plant ? "PLANT " + (index - blackoutCount + 1) + " / " + plantStages.length
       : "CHAPTER " + String(index + 1).padStart(2, "0");
     ui.stageName.textContent = layout.name;
@@ -2393,13 +2874,16 @@ function showPlayfield(playing) {
 function showHome() {
   phase = "home";
   drill = null;
+  challengeRun = null;
+  trainRun = null;
+  roadRun = null;
   selectPower(selectedPower);
   resetInput();
   view.x = 0;
   showPlayfield(false);
   syncCampaign();
   draw();
-  (ui.continueCampaign.disabled || menuSeason === 3 ? [ui.blackoutSeason, ui.factorySeason, ui.reunionSeason, ui.trainingMode][menuSeason]
+  (ui.continueCampaign.disabled || ui.continueCampaign.hidden ? [ui.blackoutSeason, ui.factorySeason, ui.reunionSeason, ui.trainingMode, ui.trainSeason, ui.arenaMode][menuSeason]
     : ui.continueCampaign).focus({ preventScroll: true });
 }
 
@@ -2408,6 +2892,8 @@ function showResult(title, description, button) {
   ui.resultTitle.textContent = title;
   ui.resultDescription.textContent = description;
   ui.resultAction.textContent = button;
+  ui.resultAction.hidden = false;
+  ui.arenaChoices.hidden = true;
   ui.stageResult.hidden = false;
   ui.resultAction.focus({ preventScroll: true });
 }
@@ -2418,9 +2904,14 @@ function completeStage() {
   const firstSeasonWin = stage().finale && progress.chaptersCleared === blackoutCount - 1;
   const firstFactoryWin = stageIndex === reunionIndex - 1 && progress.chaptersCleared === stageIndex;
   progress.chaptersCleared = Math.max(progress.chaptersCleared, stageIndex + 1);
-  const medal = stage().finale && boss && !boss.tookHit && awardMedal("warden") ? " Untouchable medal earned." : "";
+  const medal = stage().finale && !stage().train && boss && !boss.tookHit && awardMedal("warden") ? " Untouchable medal earned." : "";
   awardCredits(bonus);
-  if (stage().plant) {
+  if (stage().train) {
+    showResult(stage().finale ? "Runaway stopped" : "Train car secured",
+      stage().finale ? "The Storm Conductor is down. Storm wings unlocked. +" + formatCredits(bonus) + "."
+        : "The passengers are safe. Move to the next car. +" + formatCredits(bonus) + ".",
+      stage().finale ? "Back to campaign" : "Next train car");
+  } else if (stage().plant) {
     if (stageIndex === reunionIndex - 1) {
       if (firstFactoryWin) menuSeason = 2;
       showResult("All seven plants offline",
@@ -2446,7 +2937,7 @@ function roadDistrict() {
 }
 
 function syncDistrictTitle() {
-  ui.stageNumber.textContent = "DISTRICT " + (roadRun.index + 1) + " / " + roadDistricts.length;
+  ui.stageNumber.textContent = challengeRun?.kind === "replay" ? "DISTRICT REPLAY" : "DISTRICT " + (roadRun.index + 1) + " / " + roadDistricts.length;
   ui.stageName.textContent = roadDistrict().name;
 }
 
@@ -2490,6 +2981,14 @@ function stepEscort() {
 }
 
 function useFieldAction() {
+  const passenger = trainAction();
+  if (passenger) {
+    passenger.safe = true;
+    burst(passenger.x, floorY - 42, "#a6ffcc", 18);
+    syncHud();
+    canvas.focus({ preventScroll: true });
+    return;
+  }
   if (!roadRun) {
     shutDownPlant();
     return;
@@ -2504,13 +3003,18 @@ function useFieldAction() {
   } else if (action.kind === "follow") {
     roadRun.follower.waiting = false;
   } else {
+    if (challengeRun?.kind === "replay") {
+      finishReplay();
+      syncHud();
+      return;
+    }
     const medal = roadRun.clean && awardMedal("escort-" + roadRun.index);
     roadRun.follower = null;
     const count = ++roadRun.index;
     const finished = count === roadDistricts.length;
     const firstReunion = progress.reunionStops < count;
     progress.reunionStops = Math.max(progress.reunionStops, count);
-    if (finished) progress.chaptersCleared = stages.length;
+    if (finished) progress.chaptersCleared = Math.max(progress.chaptersCleared, trainIndex);
     const credits = firstReunion ? 32 + count * 7 + (finished ? 65 : 0) : 8;
     awardCredits(credits);
     burst(district.shelter, floorY - 52, "#a6ffcc", 28);
@@ -2518,7 +3022,7 @@ function useFieldAction() {
     barrier = null;
     if (finished) {
       phase = "cleared";
-      showResult("City reunited", "Dispatch: All five families are together. The last bots are down. +" + formatCredits(credits) + "." +
+      showResult("City reunited", "All five families are together. The Storm Train is now open. +" + formatCredits(credits) + "." +
         (medal ? " Beacon Square medal earned." : ""),
         "Back to campaign");
     } else {
@@ -2576,6 +3080,7 @@ function standing(body) {
   if (body.velocity.y < -0.1) return false;
   if (Math.abs(body.bounds.max.y - floorY) < 3) return true;
   return stage().platforms.some((deck) => deckContact(body, deck)) ||
+    trainRun?.lifts.some(lift => deckContact(body, [lift.x, lift.top, lift.width])) ||
     fieldObjects.some(object => object.frozen && deckContact(body, [object.x, floorY - 38, object.span]));
 }
 
@@ -2591,7 +3096,8 @@ function spendEnergy(amount) {
 function cast(target) {
   if (phase !== "playing" || player.cooldown > 0) return;
   const power = effectivePower(selectedPower);
-  if (player.energy < power.cost) return;
+  const free = (drill && !drill.challenge) || challengeRun?.kind === "combo";
+  if (!free && player.energy < power.cost) return;
   const { x, y } = player.body.position;
   const dx = target ? target.x - x : player.facing;
   const dy = target ? target.y - y : 0;
@@ -2599,7 +3105,7 @@ function cast(target) {
   const vx = length ? dx / length : player.facing;
   const vy = length ? dy / length : 0;
   if (Math.abs(vx) > 0.12) player.facing = Math.sign(vx);
-  if (!drill || drill.challenge) spendEnergy(power.cost);
+  if (!free) spendEnergy(power.cost);
   player.cooldown = 15;
   shots.push({ x, y, vx: vx * power.speed, vy: vy * power.speed,
     power, life: power.life, hit: new Set() });
@@ -2624,7 +3130,9 @@ function fireBot(bot) {
     const distance = Math.hypot(dx, dy);
     return distance <= 410 && distance >= 12 && Math.abs(dy) <= 105 ? { dx, dy, distance } : null;
   };
-  let target = aimAt(player.body.position);
+  const relay = arenaRelayTarget(bot);
+  const relayAim = relay && aimAt(relay);
+  let target = relayAim || aimAt(player.body.position);
   const escort = roadRun?.follower;
   if (escort?.hp > 0) {
     const aim = !escort.waiting && aimAt({ x: escort.x, y: escortFooting(escort.x) - escortHeight / 2 });
@@ -2635,7 +3143,7 @@ function fireBot(bot) {
   const profile = patrolProfile(bot);
   const speed = 5 + profile.speed * 1.3;
   shots.push({ x, y, vx: dx / distance * speed, vy: dy / distance * speed,
-    life: 80, hostile: true, damage: profile.damage });
+    life: 80, hostile: true, relay: Boolean(relayAim), damage: profile.damage });
   bot.cooldown = Math.round(119 - profile.speed * 21);
 }
 
@@ -2693,7 +3201,7 @@ function shotCollides(shot) {
       damageEscort(damage);
       return true;
     }
-    return false;
+    return arenaRelayHit(shot);
   }
   for (const bot of bots) {
     if (bot.hp <= 0 || !patrolActive(bot) || shot.hit.has(bot) || !hit(bot.body, shot, 6)) continue;
@@ -2702,10 +3210,8 @@ function shotCollides(shot) {
       burst(shot.x, shot.y, "#a6e3ed", 8);
       return true;
     }
-    bot.hp -= shot.power.damage;
-    bot.stun = shot.power.stun || 16;
-    burst(shot.x, shot.y, shot.power.color, bot.hp <= 0 ? 18 : 7);
-    if (bot.hp <= 0) Composite.remove(engine.world, bot.body);
+    const comboDamage = applyCombo(bot, shot);
+    attackBot(bot, shot.power.damage + comboDamage, shot.power.color, shot.power.stun || 16);
     if (!shot.power.pierce) return true;
   }
   if (boss?.active && boss.hp > 0 && hit(boss.body, shot, 6)) {
@@ -2724,18 +3230,22 @@ function shotCollides(shot) {
   return false;
 }
 
-function createWarden(x, active) {
-  return { x, hp: wardenHealth, active, exposed: false, opening: 0, tier: 0, turn: 0, tookHit: false,
+function createWarden(x, active, storm) {
+  const maxHealth = storm ? 66 : wardenHealth;
+  return { x, hp: maxHealth, maxHealth, storm, name: storm ? "Storm Conductor" : "The Warden",
+    active, exposed: false, opening: 0, tier: 0, turn: 0, tookHit: false,
     attack: null, chain: null,
     body: Bodies.rectangle(x, floorY - 56, 106, 112, { isStatic: true }) };
 }
 
 function aimWarden(move) {
   const { x, y } = player.body.position;
-  const profile = wardenPhases[boss.tier];
+  const profile = (boss.storm ? stormPhases : wardenPhases)[boss.tier];
   const direction = x < boss.x ? -1 : 1;
   const boltX = boss.x + direction * 56;
-  const lanes = move !== "strike" ? [] : (boss.tier === 2 ? [x - 108, x, x + 108] : [x])
+  const offsets = boss.storm ? (boss.tier === 2 ? [-186, -94, 0, 94, 186] : [-104, 0, 104])
+    : boss.tier === 2 ? [-108, 0, 108] : [0];
+  const lanes = move !== "strike" ? [] : offsets.map(offset => x + offset)
     .map((center) => Math.max(36, Math.min(finishX() - 26, center)));
   return { move, x, y, direction, boltX, lanes, clock: 0, warning: profile.warning,
     damage: profile.damage, duration: move === "strike" ? 19 : 16 };
@@ -2777,10 +3287,10 @@ function stepWarden() {
   if (!boss.attack) {
     if (!boss.chain) {
       if (Math.abs(player.body.position.x - boss.x) > 345) return;
-      const tier = boss.hp > wardenHealth * 2 / 3 ? 0 : boss.hp > wardenHealth / 3 ? 1 : 2;
+      const tier = boss.hp > boss.maxHealth * 2 / 3 ? 0 : boss.hp > boss.maxHealth / 3 ? 1 : 2;
       if (tier !== boss.tier) boss.turn = 0;
       boss.tier = tier;
-      const moves = wardenPhases[tier].moves;
+      const moves = (boss.storm ? stormPhases : wardenPhases)[tier].moves;
       const move = moves[boss.turn % moves.length];
       boss.chain = tier === 2 ? moves[(boss.turn + 1) % moves.length] : null;
       boss.attack = aimWarden(move);
@@ -2798,7 +3308,7 @@ function stepWarden() {
     boss.attack = null;
     if (boss.chain) return;
     boss.turn++;
-    boss.opening = wardenPhases[boss.tier].opening;
+    boss.opening = (boss.storm ? stormPhases : wardenPhases)[boss.tier].opening;
     boss.exposed = true;
   }
 }
@@ -2815,6 +3325,7 @@ function floorArcPhase(offset) {
 function simulate() {
   if (phase !== "playing" || ui.upgradeShop.open) return;
   frame++;
+  stepLifts();
   const body = player.body;
   const axis = movementAxis();
   if (axis) player.facing = axis;
@@ -2827,7 +3338,9 @@ function simulate() {
   if (!flightHeld) player.flightLocked = false;
   else if (!player.flying && player.energy < flightStartEnergy) player.flightLocked = true;
   player.flying = flightHeld && !player.flightLocked;
-  if (player.flying && (!drill || drill.challenge)) spendEnergy(flightDrain);
+  if (player.flying && (!drill || drill.challenge) && challengeRun?.kind !== "combo") {
+    spendEnergy(flightDrain * (1 - (challengeRun?.perks?.filter(perk => perk === "flight").length ?? 0) * 0.2));
+  }
   updateShield();
   if (jump && player.coyote > 0) {
     vy = -9.7;
@@ -2836,7 +3349,8 @@ function simulate() {
     vy = Math.max(-5.5, vy - 0.95);
     if (frame % 3 === 0) burst(body.position.x - player.facing * 16, body.position.y + 9, "#a7ffdc", 2);
   }
-  const edge = Math.max(18, Math.min(stage().width - 18, body.position.x));
+  const replayStart = challengeRun?.kind === "replay" ? roadDistrict().start : 0;
+  const edge = Math.max(replayStart + 18, Math.min(stage().width - 18, body.position.x));
   if (edge !== body.position.x) Body.setPosition(body, { x: edge, y: body.position.y });
   Body.setVelocity(body, { x: axis * (player.flying ? 7.2 : 5.65), y: Math.min(vy, 15) });
   if (!player.flying && player.rechargeWait === 0) {
@@ -2856,7 +3370,15 @@ function simulate() {
     bot.cooldown--;
     bot.stun = Math.max(0, bot.stun - 1);
     updateBotRole(bot, x);
-    Body.setVelocity(bot.body, { x: bot.stun ? 0 : bot.direction * profile.speed, y: bot.body.velocity.y });
+    let pace = bot.direction * profile.speed;
+    if (challengeRun?.kind === "arena" && bot.deck === null) {
+      const goal = bot.relayHunter ? 680 : body.position.x;
+      if (Math.abs(goal - x) > (bot.relayHunter ? 150 : 26)) bot.direction = Math.sign(goal - x);
+      else pace = 0;
+      if (pace) pace = bot.direction * profile.speed;
+    }
+    Body.setVelocity(bot.body, { x: (bot.stun ? 0 : pace) + bot.kick, y: bot.body.velocity.y });
+    bot.kick *= 0.76;
     if (profile.damage && !bot.stun) {
       fireBot(bot);
       if (Math.abs(body.position.x - x) < 31 && Math.abs(body.position.y - y) < 35) damagePlayer(profile.damage);
@@ -2866,6 +3388,7 @@ function simulate() {
   }
   stepWarden();
   Engine.update(engine, tick);
+  if (challengeRun?.kind === "replay" && frame % ghostInterval === 0) sampleReplay();
   stepEscort();
   if (body.bounds.max.y > floorY - 20 && stage().floorArcs?.some(([x, width, offset]) =>
     body.bounds.max.x > x && body.bounds.min.x < x + width && floorArcPhase(offset) === "live")) damagePlayer(16);
@@ -2882,12 +3405,15 @@ function simulate() {
     spark.life--;
   }
   sparks = sparks.filter((spark) => spark.life > 0);
-  if (!roadRun && barrier && bots.every((bot) => bot.hp <= 0) && (!boss || boss.hp <= 0)) {
+  if (!roadRun && barrier && bots.every((bot) => bot.hp <= 0) && (!boss || boss.hp <= 0) &&
+      !trainRun?.passengers.some(passenger => !passenger.safe)) {
     Composite.remove(engine.world, barrier);
     barrier = null;
     burst(finishX(), floorY - 75, "#a7ffdc", 25);
   }
-  if (drill) {
+  if (challengeRun?.kind === "combo" || challengeRun?.kind === "arena") {
+    stepChallenge();
+  } else if (drill) {
     if (bots.every(bot => bot.hp <= 0)) {
       phase = "cleared";
       if (drill.challenge) {
@@ -2908,7 +3434,7 @@ function simulate() {
   } else if (player.hp <= 0) {
     phase = "failed";
     showResult("Signal lost", boss?.active ? "The tower checkpoint is still online." : "Dispatch lost contact.",
-      boss?.active ? "Retry the Warden" : stage().plant ? "Retry plant" : roadRun ? "Retry district" : "Retry chapter");
+      boss?.active ? "Retry " + boss.name : stage().plant ? "Retry plant" : roadRun ? "Retry district" : "Retry chapter");
   } else if (!roadRun && !stage().plant && !barrier && body.position.x >= finishX() && body.position.y >= floorY - 134) {
     completeStage();
   }
@@ -2928,10 +3454,12 @@ function syncHud() {
   syncMeter(ui.energy, ui.energyAmount, player.energy, player.maxEnergy);
   ui.bossHud.hidden = !boss?.active;
   if (boss?.active) {
-    if (ui.bossHealth.max !== wardenHealth) ui.bossHealth.max = wardenHealth;
+    if (ui.bossHealth.max !== boss.maxHealth) ui.bossHealth.max = boss.maxHealth;
+    setText(ui.bossLabel, boss.name);
     ui.bossHealth.value = boss.hp;
     const state = boss.exposed ? "Core exposed" : boss.attack ? wardenCues[boss.attack.move] : "Shielded";
-    setText(ui.bossState, boss.hp <= 0 ? "Offline" : "Phase " + (boss.tier + 1) + "/3: " + state);
+    setText(ui.bossState, boss.hp <= 0 ? "Offline" : "Phase " + (boss.tier + 1) + "/3: " +
+      (boss.storm && boss.attack?.move === "strike" ? "Chain lightning" : state));
     const exposed = String(boss.exposed && boss.hp > 0);
     if (ui.bossHud.dataset.exposed !== exposed) ui.bossHud.dataset.exposed = exposed;
   }
@@ -2944,12 +3472,12 @@ function syncHud() {
     syncMeter(ui.escortHealth, ui.escortHealthAmount, escort.hp, escortMaxHealth);
     ui.escortVitals.dataset.critical = String(escort.hp <= escortMaxHealth / 3);
   }
-  const action = roadRun ? roadAction()?.label : canShutDownPlant() ? "Shut down plant" : null;
+  const action = roadRun ? roadAction()?.label : trainAction() ? "Rescue passenger" : canShutDownPlant() ? "Shut down plant" : null;
   const hideShutdown = !action;
   if (ui.plantShutdown.hidden !== hideShutdown) ui.plantShutdown.hidden = hideShutdown;
   if (action) setText(ui.plantShutdown, action);
   const district = roadDistrict();
-  const status = drill ? (phase === "cleared" ? "Targets cleared" : drill.challenge
+  let status = drill ? (phase === "cleared" ? "Targets cleared" : drill.challenge
     ? Math.ceil(Math.max(0, drill.limit - frame) / 60) + "s remaining" : "Free practice")
     : roadRun ? (phase === "cleared" ? "Families reunited" : escort?.hp === 0 ? "Escort lost"
     : !escort ? "Find " + district.missing : escort.waiting ? district.missing + " is waiting in shelter"
@@ -2958,9 +3486,17 @@ function syncHud() {
     : hideShutdown ? "Reach the shutdown console" : "Console unlocked")
     : phase === "cleared" ? "Chapter complete" : !barrier
     ? (boss ? "Grid switch open" : "Finish open")
-    : boss?.active ? "Defeat the Warden" : boss ? "Clear the tower guards" : "Finish locked";
+    : boss?.active ? "Defeat " + boss.name : boss ? "Clear the tower guards" : "Finish locked";
+  ui.runTimer.hidden = challengeRun?.kind !== "replay";
+  if (!ui.runTimer.hidden) setText(ui.runTimer, formatRun(frame));
+  if (challengeRun?.kind === "arena") status = "Wave " + challengeRun.wave + "/" + arenaWaves + " | Relay " + challengeRun.relay + "%";
+  if (challengeRun?.kind === "combo") status = comboRecipes[challengeRun.id].cue;
+  if (trainRun?.passengers.length && barrier) {
+    status = "Passengers " + trainRun.passengers.filter(passenger => passenger.safe).length + "/" + trainRun.passengers.length + " | " +
+      (defeated === total ? "Rescue the passengers" : "Clear the roof patrol");
+  }
   setText(ui.status, status);
-  ui.status.classList.toggle("open", roadRun ? Boolean(action) || phase === "cleared" : !barrier);
+  ui.status.classList.toggle("open", roadRun ? Boolean(action) || phase === "cleared" : !barrier && !challengeRun);
 }
 
 function syncMeter(meter, readout, amount, maximum) {
@@ -2972,6 +3508,7 @@ function syncMeter(meter, readout, amount, maximum) {
 
 function updateShop() {
   syncCredits();
+  syncWingShop();
   for (const { id, option, stat, buy } of shopRows) {
     const level = progress.upgrades[id];
     const maxed = level === upgradeLimit;
@@ -3046,11 +3583,13 @@ function chooseSkin(id) {
   draw();
 }
 
-function showSkins(show) {
-  ui.shopUpgradesTab.setAttribute("aria-pressed", String(!show));
-  ui.shopSkinsTab.setAttribute("aria-pressed", String(show));
-  ui.upgradeList.hidden = show;
-  ui.skinList.hidden = !show;
+function showShopTab(tab) {
+  ui.shopUpgradesTab.setAttribute("aria-pressed", String(tab === "upgrades"));
+  ui.shopSkinsTab.setAttribute("aria-pressed", String(tab === "skins"));
+  ui.shopWingsTab.setAttribute("aria-pressed", String(tab === "wings"));
+  ui.upgradeList.hidden = tab !== "upgrades";
+  ui.skinList.hidden = tab !== "skins";
+  ui.wingList.hidden = tab !== "wings";
   ui.shopFeedback.textContent = "";
 }
 
@@ -3096,10 +3635,12 @@ function renderShop() {
 
 function selectPower(index) {
   if (drill && index !== drill.powerIndex) return;
+  const pair = challengeRun?.kind === "combo" ? comboRecipes[challengeRun.id].powers : null;
+  if (pair && !pair.includes(index)) return;
   selectedPower = index;
   for (const [i, button] of [...ui.powerGrid.children].entries()) {
     button.setAttribute("aria-pressed", String(i === index));
-    button.disabled = Boolean(drill && i !== drill.powerIndex);
+    button.disabled = Boolean((drill && i !== drill.powerIndex) || (pair && !pair.includes(i)));
   }
 }
 
@@ -3198,7 +3739,7 @@ function background(layout = stage()) {
   box(sky, 0, 0, width, height);
   const horizon = floorY - view.y;
   for (let i = -1; i < width / 270 + 2; i++) {
-    const left = i * 270 - (x * 0.22 % 270);
+    const left = i * 270 - ((x * 0.22 + (trainRun ? frame * 0.75 : 0)) % 270);
     polygon(layout.ridge, [[left - 65, horizon], [left + 48, horizon - 158], [left + 92, horizon - 182],
       [left + 166, horizon - 112], [left + 211, horizon - 99], [left + 308, horizon]]);
   }
@@ -3316,10 +3857,7 @@ function drawPlayer() {
   ctx.translate(x, y);
   ctx.scale(player.facing, 1);
   if (player.invulnerable % 8 > 4) ctx.globalAlpha = 0.45;
-  if (player.flying) {
-    polygon("#73d9b989", [[-4, -9], [-56, -21], [-47, -4], [-57, 12], [-7, 6]]);
-    polygon("#adffdf", [[-7, -8], [-47, -14], [-20, 1], [-42, 7], [-7, 5]]);
-  }
+  if (player.flying) drawWings();
   drawSkinSprite(ctx, progress.skin, step, progress.upgrades.armor > 0);
   if (progress.skin === "pilot") {
     if (player.cooldown > 9) box("#c2d5d1", 18, -6, 7, 7);
@@ -3357,6 +3895,8 @@ function drawBot(bot) {
     box("#aae8a8", -13, -28, 11, 4);
     box("#aae8a8", -9, -32, 4, 12);
   }
+  if (bot.polarizedUntil > frame) box("#e0b1ff", -12, -21, 24, 3);
+  if (bot.frozenUntil > frame) box("#bdeeff", -11, 0, 22, 3);
   const maxHp = patrolProfile(bot).hp;
   if (maxHp > 1) {
     box("#30272c", -15, -26, 30, 3);
@@ -3406,7 +3946,7 @@ function drawWarden() {
   const { x, active, hp, exposed, attack } = boss;
   const core = !active || hp <= 0 ? "#53626c" : exposed ? "#a7ffdc" : boss.tier === 2 ? "#f5a4ff" : "#ff9976";
   if (attack && hp > 0) {
-    const color = "#ffac6f";
+    const color = boss.storm ? "#f3c5ff" : "#ffac6f";
     const warning = attack.clock < attack.warning;
     if (attack.move === "strike") {
       for (const lane of attack.lanes) {
@@ -3436,6 +3976,11 @@ function drawWarden() {
     }
   }
   storyWarden(ctx, x, floorY, 1, core, active && hp > 0 && !exposed);
+  if (boss.storm) {
+    polygon("#665478", [[x - 32, floorY - 98], [x - 16, floorY - 133], [x - 5, floorY - 111],
+      [x + 12, floorY - 111], [x + 24, floorY - 131], [x + 35, floorY - 96]]);
+    box("#f2c3ff", x - 16, floorY - 105, 32, 5);
+  }
   if (exposed && hp > 0 && frame % 28 < 17) {
     const size = 23 + (frame % 28) * 0.4;
     storyLine(ctx, "#a7ffdc", 1, [[x, floorY - 65 - size], [x + size, floorY - 65],
@@ -3510,7 +4055,7 @@ function draw() {
   const groundViewY = floorY - view.height * 0.83;
   if (phase === "home") {
     view.y = groundViewY;
-    const layout = [blackoutStages[0], plantStages[0], roadDistricts[0]][menuSeason] ?? blackoutStages[0];
+    const layout = [blackoutStages[0], plantStages[0], roadDistricts[0], null, trainStages[0]][menuSeason] ?? blackoutStages[0];
     background(layout);
     box(layout.rock, 0, floorY - view.y, view.width, view.height);
     return;
@@ -3527,7 +4072,7 @@ function draw() {
   const groundSpan = roadRun ? Math.min(stage().width - groundLeft, view.width + 60) : stage().width;
   platform(groundLeft, floorY, groundSpan, view.height);
   if (stage().plant) drawShutdownConsole(ctx, finishX(), floorY, 1, Boolean(barrier), phase === "cleared");
-  else if (!roadRun) drawGate(finishX(), true);
+  else if (!roadRun && !challengeRun) drawGate(finishX(), true);
   for (const [index, [left, top, width]] of stage().platforms.entries()) {
     if (roadRun && (left + width < view.x - 25 || left > view.x + view.width + 25)) continue;
     for (const side of [left + 9, left + width - 15]) {
@@ -3541,12 +4086,15 @@ function draw() {
   }
   if (stage().floorArcs && !(stage().plant && phase === "cleared")) drawFloorArcs(stage().floorArcs);
   drawFieldObjects();
+  drawExpansion();
   if (roadRun) drawReunionWorld();
   for (const bot of bots) if (bot.hp > 0 && patrolActive(bot)) drawBot(bot);
   if (boss) drawWarden();
   for (const shot of shots) drawShot(shot);
+  drawDistrictGhost();
   drawPlayer();
   drawShield();
+  drawComboFlash();
   for (const spark of sparks) {
     ctx.globalAlpha = Math.min(1, spark.life / 9);
     box(spark.color, spark.x, spark.y, 3, 3);
@@ -3589,6 +4137,13 @@ function drawLevelPreview(button, layout) {
   art.fill();
   if (layout.chamber) drawChamber(art, layout.chamber, width, ground, 0, 0.41);
   if (layout.plant) drawPlantWorks(art, layout, width, ground, 0, 0.42, false);
+  if (layout.train) {
+    for (let x = 7; x < width; x += 64) {
+      storyRect(art, "#243441", x, ground - 32, 60, 30);
+      storyRect(art, layout.trim, x, ground - 34, 60, 2);
+      for (let i = 8; i < 55; i += 16) storyRect(art, "#6c8389", x + i, ground - 25, 12, 9);
+    }
+  }
 
   const scaleX = width / layout.width;
   const scaleY = (ground - 12) / floorY;
@@ -3633,6 +4188,8 @@ function renderLevelMenu() {
   const grids = document.querySelectorAll(".level-grid");
   acts.forEach((act, index) => addLevels(grids[index], act));
   addLevels(ui.plantGrid, plantStages);
+  levelButtons.push(null);
+  addLevels(ui.trainGrid, trainStages);
   for (const district of roadDistricts) {
     const stop = document.createElement("li");
     const name = document.createElement("strong");
@@ -3711,42 +4268,55 @@ function syncCampaign() {
   const factories = menuSeason === 1;
   const reunion = menuSeason === 2;
   const training = menuSeason === 3;
-  const lockedSeason = !training && count < [0, blackoutCount, reunionIndex][menuSeason];
+  const train = menuSeason === 4;
+  const arena = menuSeason === 5;
+  const lockedSeason = !training && !arena && count < [0, blackoutCount, reunionIndex, 0, trainIndex][menuSeason];
+  const trainCleared = Math.max(0, count - trainIndex);
   const plantsOffline = Math.max(0, Math.min(reunionIndex, count) - blackoutCount);
   const families = progress.reunionStops;
   ui.blackoutSeason.setAttribute("aria-pressed", String(menuSeason === 0));
   ui.factorySeason.setAttribute("aria-pressed", String(factories));
   ui.reunionSeason.setAttribute("aria-pressed", String(reunion));
   ui.trainingMode.setAttribute("aria-pressed", String(training));
+  ui.trainSeason.setAttribute("aria-pressed", String(train));
+  ui.arenaMode.setAttribute("aria-pressed", String(arena));
   ui.blackoutRoute.hidden = menuSeason !== 0;
   ui.factoryRoute.hidden = !factories;
   ui.reunionRoute.hidden = !reunion;
   ui.trainingRoute.hidden = !training;
+  ui.trainRoute.hidden = !train;
+  ui.arenaRoute.hidden = !arena;
   ui.homeTitle.textContent = seasonNames[menuSeason];
   if (phase === "home") ui.seasonTag.textContent = seasonTag(menuSeason);
-  ui.seasonBrief.hidden = menuSeason === 0 || training;
-  ui.seasonBrief.textContent = reunion ? (lockedSeason ? "Take all seven processing plants offline to unlock Season 3."
+  ui.seasonBrief.hidden = menuSeason === 0 || training || arena;
+  ui.seasonBrief.textContent = train ? (lockedSeason ? "Reunite all five families to unlock Season 4."
+    : trainCleared === trainStages.length ? "The runaway train has stopped and the storm core is offline."
+      : "The Storm Conductor has seized a runaway train carrying a storm core. " + trainStages[trainCleared].brief)
+    : reunion ? (lockedSeason ? "Take all seven processing plants offline to unlock Season 3."
     : families === roadDistricts.length ? "The last patrols are gone. The city is together again."
       : "The factories are quiet, but people are still separated by the remaining patrols.")
     : lockedSeason ? "Defeat the Warden at Overload Tower to unlock Season 2."
       : count >= reunionIndex ? "The bot network is down. All seven plants are quiet."
         : "The Warden is down, but its bots are still coming out of seven processing plants.";
-  ui.campaignProgress.textContent = training ? progress.medals.length + " of " + medalDefinitions.length + " medals earned"
+  ui.campaignProgress.textContent = arena ? "5 waves" : train ? trainCleared + " of " + trainStages.length + " cars secured"
+    : training ? progress.medals.length + " of " + medalDefinitions.length + " medals earned"
     : reunion ? families + " of " + roadDistricts.length + " families reunited"
     : factories ? plantsOffline + " of " + plantStages.length + " plants offline"
     : Math.min(count, blackoutCount) + " of " + blackoutCount + " chapters cleared";
   ui.continueCampaign.disabled = lockedSeason;
-  ui.continueCampaign.hidden = training;
-  ui.continueCampaign.textContent = reunion
+  ui.continueCampaign.hidden = training || arena;
+  ui.continueCampaign.textContent = train ? lockedSeason ? "Season 4 locked" : trainCleared === trainStages.length ? "Replay the Storm Conductor"
+    : trainCleared ? "Continue to Car " + (trainCleared + 1) : "Board the train" : reunion
     ? lockedSeason ? "Season 3 locked" : families === roadDistricts.length ? "Replay the journey"
       : families ? "Continue from " + roadDistricts[families].name : "Start Season 3"
     : factories ? lockedSeason ? "Season 2 locked" : count >= reunionIndex ? "Replay the last plant"
       : plantsOffline === 0 ? "Start Season 2" : "Continue to Plant " + (plantsOffline + 1)
     : count >= blackoutCount ? "Replay the Warden" : count === 0 ? "Begin Chapter 1" : "Continue to Chapter " + (count + 1);
-  ui.replayPrologue.hidden = lockedSeason || training;
+  ui.replayPrologue.hidden = lockedSeason || menuSeason > 2;
   const seen = [progress.campaignPrologueSeen, progress.factoryBriefingSeen, progress.reunionBriefingSeen][menuSeason];
   ui.replayPrologue.textContent = (seen ? "Replay " : "Watch ") + (menuSeason === 0 ? "prologue" : "briefing");
   if (training) syncTraining();
+  syncExpansionMenus();
   if (reunion) {
     drawReunionMap(ui.reunionMap, families);
     [...ui.reunionStops.children].forEach((stop, index) => {
@@ -3759,6 +4329,7 @@ function syncCampaign() {
     });
   }
   levelButtons.forEach((button, index) => {
+    if (!button) return;
     const locked = index > count;
     button.disabled = locked;
     const current = index === count;
@@ -3777,13 +4348,17 @@ ui.blackoutSeason.addEventListener("click", () => showSeason(0));
 ui.factorySeason.addEventListener("click", () => showSeason(1));
 ui.reunionSeason.addEventListener("click", () => showSeason(2));
 ui.trainingMode.addEventListener("click", () => showSeason(3));
+ui.trainSeason.addEventListener("click", () => showSeason(4));
+ui.arenaMode.addEventListener("click", () => showSeason(5));
+ui.startArena.addEventListener("click", () => launchStage(0, false, null, null, { kind: "arena" }));
 ui.replayPrologue.addEventListener("click", () => openPrologue());
 ui.continueCampaign.addEventListener("click", () => chooseLevel(menuSeason === 2 ? reunionIndex : menuSeason === 1
   ? Math.max(blackoutCount, Math.min(progress.chaptersCleared, reunionIndex - 1))
+  : menuSeason === 4 ? Math.max(trainIndex, Math.min(progress.chaptersCleared, stages.length - 1))
   : Math.min(progress.chaptersCleared, blackoutCount - 1)));
 ui.plantShutdown.addEventListener("click", useFieldAction);
 ui.restartButton.addEventListener("click", () => launchStage(stageIndex, false,
-  roadRun && roadRun.index < roadDistricts.length ? roadRun.index : null, drill));
+  roadRun && roadRun.index < roadDistricts.length ? roadRun.index : null, drill, challengeRun));
 ui.shopButton.addEventListener("click", () => {
   if (ui.upgradeShop.open) return;
   resetInput();
@@ -3792,14 +4367,15 @@ ui.shopButton.addEventListener("click", () => {
   ui.upgradeShop.showModal();
 });
 ui.closeShopButton.addEventListener("click", () => ui.upgradeShop.close());
-ui.shopUpgradesTab.addEventListener("click", () => showSkins(false));
-ui.shopSkinsTab.addEventListener("click", () => showSkins(true));
+ui.shopUpgradesTab.addEventListener("click", () => showShopTab("upgrades"));
+ui.shopSkinsTab.addEventListener("click", () => showShopTab("skins"));
+ui.shopWingsTab.addEventListener("click", () => showShopTab("wings"));
 ui.upgradeShop.addEventListener("close", () => {
   if (phase === "playing") canvas.focus({ preventScroll: true });
 });
 ui.resultAction.addEventListener("click", () => {
-  if (phase === "failed") launchStage(stageIndex, boss?.active && boss.hp > 0, roadRun?.index, drill);
-  else if (drill) showHome();
+  if (phase === "failed") launchStage(stageIndex, boss?.active && boss.hp > 0, roadRun?.index, drill, challengeRun);
+  else if (drill || challengeRun || roadRun) showHome();
   else if (phase === "cleared" && stageIndex + 1 < stages.length) chooseLevel(stageIndex + 1);
   else showHome();
 });
@@ -3863,6 +4439,7 @@ for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
 }
 
 renderTraining();
+renderExpansionMenus();
 renderLevelMenu();
 renderPowers();
 renderShop();
